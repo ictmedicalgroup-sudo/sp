@@ -522,7 +522,10 @@ async function loadHunterStats(){
     return;
   }
   try{
-    const res=await fetch(`https://api.hunter.io/v2/account?api_key=${S.settings['hunter_key']}`);
+    const key=(S.settings['hunter_key']||'').trim();
+    if(!key){if(box)box.innerHTML='<div style="font-size:13px;color:var(--g300);">Chiave Hunter non configurata.</div>';return;}
+    const res=await fetch(`https://api.hunter.io/v2/account?api_key=${key}`);
+    if(!res.ok){const t=await res.text();throw new Error(`HTTP ${res.status}: ${t.slice(0,100)}`);}
     const data=await res.json();
     if(data.data){
       const used=data.data.requests.searches.used;
@@ -553,7 +556,7 @@ async function loadHunterStats(){
     }else{
       if(box)box.innerHTML=`<div style="font-size:13px;color:var(--red);">${data.errors?.[0]?.details||'Errore API Hunter'}</div>`;
     }
-  }catch(e){if(box)box.innerHTML='<div style="font-size:13px;color:var(--red);">Errore connessione Hunter.io</div>';}
+  }catch(e){if(box)box.innerHTML=`<div style="font-size:13px;color:var(--red);">Errore Hunter.io: ${e.message}</div>`;console.error('Hunter stats error:',e);}
 }
 function renderEmail(pb){
   const daInviare=S.prospect.filter(p=>p.stato==='email_trovata'&&p.email&&(!S.campagnaAttiva||p.campagna_id===S.campagnaAttiva));
@@ -938,7 +941,7 @@ function renderSettings(pb){
       ${renderKey('google_maps_key','Google Maps API Key','Per la ricerca automatica prospect.','AIza...')}
       ${renderKey('hunter_key','Hunter.io API Key','Ricerca email. Piano free: 25/mese.','hunter_...')}
       ${renderKey('claude_key','Anthropic Claude API Key','Generazione email e template AI.','sk-ant-...')}
-      ${renderKey('brevo_sender','Email mittente','Es: commerciale@medicalgroup.it','info@medicalgroup.it')}
+      ${renderKeyText('brevo_sender','Email mittente','Es: commerciale@medicalgroup.it','info@medicalgroup.it')}
     </div></div>
     <div>
       <div class="card" style="margin-bottom:16px;"><div class="settings-section"><h4>Parametri</h4>
@@ -965,6 +968,26 @@ function renderSettings(pb){
     await saveSettings(chiave,valore);input.classList.add('saved');setTimeout(()=>input.classList.remove('saved'),2000);toast('Salvato');
   }));
   $('btn-save-cfg')&&$('btn-save-cfg').addEventListener('click',async()=>{await saveSettings('followup_days',$('set-fu').value);toast('Parametri salvati');});
+}
+function renderKeyText(chiave,label,desc,placeholder){
+  const val=S.settings[chiave]||'';
+  const savedAt=S.settings[chiave+'_saved_at']||'';
+  const hasSaved=val.length>0;
+  const savedLabel=savedAt?'Inserita il '+new Date(savedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  const inputStyle=hasSaved?'border:1.5px solid var(--verde);background:#EEF5E3;':'border:1.5px solid var(--g200);background:var(--g50);';
+  const statusHTML=hasSaved
+    ?`<div style="font-size:11px;color:var(--verde);margin-top:4px;font-weight:600;">Salvata &bull; ${savedLabel}</div>`
+    :`<div style="font-size:11px;color:var(--g300);margin-top:4px;">Nessun valore salvato</div>`;
+  return`<div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+    <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start;">
+      <div><div class="setting-label">${esc(label)}</div><div class="setting-desc">${esc(desc)}</div></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:16px;">
+        <input type="text" class="key-input" id="k-${chiave}" value="${esc(val)}" placeholder="${esc(placeholder)}" style="${inputStyle}width:220px;font-size:13px;padding:8px 12px;border-radius:var(--rsm);outline:none;transition:border-color .2s;"/>
+        <button class="btn btn-secondary btn-sm key-save-btn" data-key="${chiave}">Salva</button>
+      </div>
+    </div>
+    ${statusHTML}
+  </div>`;
 }
 function renderKey(chiave,label,desc,placeholder){
   const val=S.settings[chiave]||'';

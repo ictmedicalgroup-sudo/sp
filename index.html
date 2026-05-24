@@ -606,25 +606,44 @@ function openGeneraEmail(id){
       <div class="fgroup"><label>Template base</label><select id="ge-tpl"><option value="">Senza template</option>${tplDisponibili.map(t=>`<option value="${t.id}">${esc(t.nome)}</option>`).join('')}</select></div>
     </div>
     <div id="ge-output" style="margin-top:16px;"></div>`;
-  $('modal-foot').innerHTML='<button class="btn btn-secondary" id="ge-c">Annulla</button><button class="btn btn-secondary" id="ge-g">Genera con AI</button><button class="btn btn-primary" id="ge-i" style="display:none;">Approva e invia</button>';
+  const _activeProvs=getActiveProviders();
+  const _defProv=getDefaultProvider();
+  const _provLabels={claude:'Claude',groq:'Groq',gemini:'Gemini'};
+  const _provSelHTML=_activeProvs.length>1
+    ?`<select id="ge-prov" style="padding:6px 10px;border:1px solid var(--g200);border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:12px;">${_activeProvs.map(p=>`<option value="${p}" ${p===_defProv?'selected':''}>${_provLabels[p]}</option>`).join('')}</select>`
+    :`<span style="font-size:12px;color:var(--g500);padding:6px 0;">${_provLabels[_defProv]||'Demo'}</span>`;
+  $('modal-foot').innerHTML=`<button class="btn btn-secondary" id="ge-c">Annulla</button>${_provSelHTML}<button class="btn btn-secondary" id="ge-g">${_activeProvs.length?'Genera con AI':'Genera demo'}</button><button class="btn btn-primary" id="ge-i" style="display:none;">Approva e invia</button>`;
   $('ge-c').addEventListener('click',closeModal);
   $('ge-g').addEventListener('click',async()=>{
     const tipo=$('ge-tipo').value,tono=$('ge-tono').value;
     const tplId=$('ge-tpl').value;const tpl=tplId?S.template.find(t=>t.id===tplId):null;
-    const provider=S.settings['ai_provider']||'claude';
-    const hasKey=S.settings[provider==='groq'?'groq_key':provider==='gemini'?'gemini_key':'claude_key'];
-    if(!hasKey){generaEmailDemo(p,campagna,sede,tpl,tipo);return;}
+    const activeProvs=getActiveProviders();
+    if(!activeProvs.length){generaEmailDemo(p,campagna,sede,tpl,tipo);return;}
+    const selectedProv=$('ge-prov')?$('ge-prov').value:getDefaultProvider();
     $('ge-g').disabled=true;$('ge-g').textContent='Generazione...';
     try{
-      const testo=await callAI(buildEmailPrompt(p,campagna,sede,tpl,tipo,tono));
+      const testo=await callAI(buildEmailPrompt(p,campagna,sede,tpl,tipo,tono),selectedProv);
       mostraEmailGenerata(p,testo,tipo);
     }catch(e){toast('Errore AI: '+e.message,'err');}
     $('ge-g').disabled=false;$('ge-g').textContent='Rigenera';
   });
   openModal();
 }
-async function callAI(prompt){
-  const provider=S.settings['ai_provider']||'claude';
+function getActiveProviders(){
+  return['claude','groq','gemini'].filter(p=>{
+    const hasKey=!!(p==='claude'?S.settings['claude_key']:S.settings[p+'_key']);
+    const active=S.settings['ai_active_'+p];
+    // active if: explicitly set to '1', OR has key and never been explicitly disabled
+    return hasKey&&(active==='1'||active===undefined||active===null||active==='');
+  });
+}
+function getDefaultProvider(){
+  const def=S.settings['ai_provider']||'claude';
+  const active=getActiveProviders();
+  return active.includes(def)?def:(active[0]||'claude');
+}
+async function callAI(prompt,forceProvider=null){
+  const provider=forceProvider||S.settings['ai_provider']||'claude';
   if(provider==='groq'){
     const key=(S.settings['groq_key']||'').trim();
     if(!key)throw new Error('Chiave Groq non configurata nelle Impostazioni');
@@ -637,7 +656,7 @@ async function callAI(prompt){
   }else if(provider==='gemini'){
     const key=(S.settings['gemini_key']||'').trim();
     if(!key)throw new Error('Chiave Gemini non configurata nelle Impostazioni');
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{method:'POST',
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000}})});
     if(!res.ok){const t=await res.text();throw new Error(`Gemini ${res.status}: ${t.slice(0,200)}`);}
@@ -660,10 +679,11 @@ function buildEmailPrompt(p,campagna,sede,tpl,tipo,tono){
   const tipoDesc={primo_contatto:'primo contatto',followup_1:'primo follow-up (nessuna risposta)',followup_2:'secondo e ultimo follow-up'};
   const baseTpl=tpl?`\n\nUSA QUESTO TEMPLATE COME BASE:\n${tpl.testo}`:'';
   return`Sei un commerciale di Medi Group. Scrivi una email di ${tipoDesc[tipo]||tipo} a ${p.nome}, associazione di ${p.sport||'sport'} a ${p.citta||'Milano'}. Servizio: visite medico-sportive obbligatorie presso ${sedeDesc}${p.km_sede?`, a ${p.km_sede}km da loro`:''}. Tono: ${tono}.${p.note?' Note: '+p.note:''}${baseTpl}
-Formato:
-OGGETTO: [oggetto]
+
+RISPONDI ESATTAMENTE in questo formato (non aggiungere altro testo prima o dopo):
+OGGETTO: [solo oggetto, max 10 parole]
 ---
-[corpo email max 150 parole, call to action chiara, in italiano]`;
+[corpo email, max 120 parole, in italiano, con saluti finali e firma [Nome] - Medi Group]`;
 }
 function generaEmailDemo(p,campagna,sede,tpl,tipo){
   const sedeDesc=sede?sede.nome:'Centro Medicina dello Sport di Bareggio';
@@ -831,23 +851,25 @@ function openEditTemplate(id){
   openModal();
 }
 function openGeneraTemplate(){
-  const _prov=S.settings['ai_provider']||'claude';
-  const _key=S.settings[_prov==='groq'?'groq_key':_prov==='gemini'?'gemini_key':'claude_key'];
-  if(!_key){toast('Configura una chiave AI nelle Impostazioni (Claude, Groq o Gemini)','warn');return;}
+  if(!getActiveProviders().length){toast('Configura almeno un provider AI nelle Impostazioni','warn');return;}
   $('modal-title').textContent='Genera template con AI';$('modal-box').className='modal modal-lg';
   $('modal-body').innerHTML=`
     <div class="frow"><div class="fgroup"><label>Tipo</label><select id="gt-tipo"><option value="primo_contatto">Primo contatto</option><option value="followup_1">Follow-up 1</option><option value="followup_2">Follow-up 2</option></select></div>
     <div class="fgroup"><label>Sport di riferimento</label><input type="text" id="gt-sport" placeholder="calcio giovanile, tennis..."/></div></div>
     <div class="frow full"><div class="fgroup"><label>Istruzioni aggiuntive</label><textarea id="gt-note" style="min-height:60px;"></textarea></div></div>
     <div id="gt-out"></div>`;
-  $('modal-foot').innerHTML='<button class="btn btn-secondary" id="gt-c">Annulla</button><button class="btn btn-secondary" id="gt-g">Genera</button><button class="btn btn-primary" id="gt-s" style="display:none;">Salva template</button>';
+  const _gtActiveProvs=getActiveProviders();const _gtDef=getDefaultProvider();
+  const _gtProvSel=_gtActiveProvs.length>1
+    ?`<select id="gt-prov" style="padding:6px 10px;border:1px solid var(--g200);border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:12px;">${_gtActiveProvs.map(p=>`<option value="${p}" ${p===_gtDef?'selected':''}>${{claude:'Claude',groq:'Groq',gemini:'Gemini'}[p]}</option>`).join('')}</select>`
+    :'';
+  $('modal-foot').innerHTML=`<button class="btn btn-secondary" id="gt-c">Annulla</button>${_gtProvSel}<button class="btn btn-secondary" id="gt-g">Genera</button><button class="btn btn-primary" id="gt-s" style="display:none;">Salva template</button>`;
   $('gt-c').addEventListener('click',closeModal);
   $('gt-g').addEventListener('click',async()=>{
     $('gt-g').disabled=true;$('gt-g').textContent='Generazione...';
     try{
       const tipo=$('gt-tipo').value,sport=$('gt-sport').value,note=$('gt-note').value;
       const prompt=`Crea template email per Medi Group per proporre medicina dello sport ad associazioni (${sport||'generico'}). Tipo: ${{primo_contatto:'primo contatto',followup_1:'primo follow-up',followup_2:'secondo follow-up'}[tipo]}. ${note?'Istruzioni: '+note:''} Usa variabili {{nome}} {{sport}} {{citta}} {{km}} {{sede}}. Formato:\nOGGETTO: [oggetto]\n---\n[corpo max 150 parole, in italiano]`;
-      const testo=await callAI(prompt);
+      const _selProv=$('gt-prov')?$('gt-prov').value:getDefaultProvider();const testo=await callAI(prompt,_selProv);
       const parts=testo.split('---');const oggetto=(parts[0]||'').replace(/OGGETTO:\s*/i,'').trim();const corpo=(parts[1]||testo).trim();
       $('gt-out').innerHTML=`<div style="margin-top:16px;">
         <div class="fgroup" style="margin-bottom:10px;"><label>Oggetto</label><input type="text" id="gt-ogg-out" value="${esc(oggetto)}" style="width:100%;"/></div>
@@ -975,22 +997,34 @@ function renderSettings(pb){
     <div class="card"><div class="settings-section"><h4>API Keys</h4>
       ${renderKey('google_maps_key','Google Maps API Key','Per la ricerca automatica prospect.','AIza...')}
       ${renderKey('hunter_key','Hunter.io API Key','Ricerca email. Piano free: 25/mese.','hunter_...')}
-      ${renderKey('claude_key','Anthropic Claude API Key','Generazione email e template AI.','sk-ant-...')}
-      ${renderKey('groq_key','Groq API Key (gratuita)','Alternativa gratuita a Claude. llama-3.1-8b.','gsk_...')}
-      ${renderKey('gemini_key','Google Gemini API Key (gratuita)','Alternativa gratuita a Claude. gemini-1.5-flash.','AIza...')}
+      ${renderKey('claude_key','Anthropic Claude API Key','claude-sonnet-4. Richiede credito.','sk-ant-...')}
+      ${renderKey('groq_key','Groq API Key','llama-3.1-8b-instant. Piano free disponibile.','gsk_...')}
+      ${renderKey('gemini_key','Google Gemini API Key','gemini-2.0-flash. Piano free disponibile.','AIza...')}
       ${renderKeyText('brevo_sender','Email mittente','Es: commerciale@medicalgroup.it','info@medicalgroup.it')}
     </div></div>
     <div>
       <div class="card" style="margin-bottom:16px;"><div class="settings-section"><h4>Parametri</h4>
-        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
-          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-            <div><div class="setting-label">Provider AI</div><div class="setting-desc">Usato per generare email e template</div></div>
-            <select id="set-ai-provider" style="width:160px;">
-              <option value="claude" ${(S.settings['ai_provider']||'claude')==='claude'?'selected':''}>Claude (Anthropic)</option>
-              <option value="groq" ${S.settings['ai_provider']==='groq'?'selected':''}>Groq (gratuito)</option>
-              <option value="gemini" ${S.settings['ai_provider']==='gemini'?'selected':''}>Gemini (gratuito)</option>
-            </select>
-          </div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:none;">
+          <div class="setting-label" style="margin-bottom:4px;">Provider AI attivi</div>
+          <div class="setting-desc" style="margin-bottom:10px;">Attiva i provider e scegli il default. Al momento della generazione potrai scegliere tra quelli attivi.</div>
+          ${['claude','groq','gemini'].map(prov=>{
+            const labels={claude:'Claude (Anthropic)',groq:'Groq',gemini:'Google Gemini'};
+            const isActive=(S.settings['ai_active_'+prov]||prov)==='1'||(S.settings['ai_active_'+prov]==='1');
+            const hasKey=!!S.settings[prov==='claude'?'claude_key':prov+'_key'];
+            const isDefault=(S.settings['ai_provider']||'claude')===prov;
+            return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${isActive&&hasKey?'var(--blue-xlight)':'var(--g50)'};border:1px solid ${isActive&&hasKey?'var(--blue-light)':'var(--g200)'};border-radius:var(--rsm);margin-bottom:6px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <label class="sw-label" style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;">
+                  <input type="checkbox" class="ai-active-cb" data-prov="${prov}" ${isActive?'checked':''} style="opacity:0;width:0;height:0;position:absolute;">
+                  <span style="position:absolute;inset:0;background:${isActive?'var(--verde)':'var(--g300)'};border-radius:20px;transition:.2s;cursor:pointer;" onclick="this.previousElementSibling.click()"></span>
+                  <span style="position:absolute;left:${isActive?'18':'2'}px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;pointer-events:none;"></span>
+                </label>
+                <span style="font-size:13px;font-weight:600;color:${hasKey?'var(--navy)':'var(--g300)'};">${labels[prov]}</span>
+                ${!hasKey?'<span style="font-size:11px;color:var(--g300);">chiave mancante</span>':''}
+              </div>
+              <button class="btn btn-sm ${isDefault?'btn-primary':'btn-secondary'} ai-default-btn" data-prov="${prov}" style="font-size:11px;padding:3px 10px;">${isDefault?'Default':'Imposta default'}</button>
+            </div>`;
+          }).join('')}
         </div>
         <div class="setting-row"><div class="setting-info"><div class="setting-label">Giorni prima follow-up</div><div class="setting-desc">Giorni senza risposta prima che appaia nel follow-up</div></div>
           <select id="set-fu" style="width:90px;">${[3,4,5,7].map(n=>`<option value="${n}" ${(S.settings['followup_days']||'4')===String(n)?'selected':''}>${n} giorni</option>`).join('')}</select>
@@ -1014,7 +1048,22 @@ function renderSettings(pb){
     const chiave=btn.dataset.key;const input=document.getElementById('k-'+chiave);const valore=input.value.trim();if(!valore)return;
     await saveSettings(chiave,valore);input.classList.add('saved');setTimeout(()=>input.classList.remove('saved'),2000);toast('Salvato');
   }));
-  $('btn-save-cfg')&&$('btn-save-cfg').addEventListener('click',async()=>{await saveSettings('followup_days',$('set-fu').value);if($('set-ai-provider'))await saveSettings('ai_provider',$('set-ai-provider').value);toast('Parametri salvati');});
+  $('btn-save-cfg')&&$('btn-save-cfg').addEventListener('click',async()=>{
+    await saveSettings('followup_days',$('set-fu').value);
+    toast('Parametri salvati');
+  });
+  document.querySelectorAll('.ai-active-cb').forEach(cb=>cb.addEventListener('change',async e=>{
+    const prov=e.target.dataset.prov;
+    await saveSettings('ai_active_'+prov,e.target.checked?'1':'0');
+    toast((e.target.checked?'Attivato: ':'Disattivato: ')+prov);
+    renderSettings($('pb'));
+  }));
+  document.querySelectorAll('.ai-default-btn').forEach(btn=>btn.addEventListener('click',async e=>{
+    const prov=e.target.dataset.prov;
+    await saveSettings('ai_provider',prov);
+    toast('Default impostato: '+prov);
+    renderSettings($('pb'));
+  }));
 }
 function renderKeyText(chiave,label,desc,placeholder){
   const val=S.settings[chiave]||'';

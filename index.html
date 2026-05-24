@@ -611,15 +611,49 @@ function openGeneraEmail(id){
   $('ge-g').addEventListener('click',async()=>{
     const tipo=$('ge-tipo').value,tono=$('ge-tono').value;
     const tplId=$('ge-tpl').value;const tpl=tplId?S.template.find(t=>t.id===tplId):null;
-    if(!S.settings['claude_key']){generaEmailDemo(p,campagna,sede,tpl,tipo);return;}
+    const provider=S.settings['ai_provider']||'claude';
+    const hasKey=S.settings[provider==='groq'?'groq_key':provider==='gemini'?'gemini_key':'claude_key'];
+    if(!hasKey){generaEmailDemo(p,campagna,sede,tpl,tipo);return;}
     $('ge-g').disabled=true;$('ge-g').textContent='Generazione...';
     try{
-      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:buildEmailPrompt(p,campagna,sede,tpl,tipo,tono)}]})});
-      const data=await res.json();mostraEmailGenerata(p,data.content?.[0]?.text||'',tipo);
+      const testo=await callAI(buildEmailPrompt(p,campagna,sede,tpl,tipo,tono));
+      mostraEmailGenerata(p,testo,tipo);
     }catch(e){toast('Errore AI: '+e.message,'err');}
     $('ge-g').disabled=false;$('ge-g').textContent='Rigenera';
   });
   openModal();
+}
+async function callAI(prompt){
+  const provider=S.settings['ai_provider']||'claude';
+  if(provider==='groq'){
+    const key=(S.settings['groq_key']||'').trim();
+    if(!key)throw new Error('Chiave Groq non configurata nelle Impostazioni');
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
+      headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
+      body:JSON.stringify({model:'llama-3.1-8b-instant',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok){const t=await res.text();throw new Error(`Groq ${res.status}: ${t.slice(0,200)}`);}
+    const data=await res.json();
+    return data.choices?.[0]?.message?.content||'';
+  }else if(provider==='gemini'){
+    const key=(S.settings['gemini_key']||'').trim();
+    if(!key)throw new Error('Chiave Gemini non configurata nelle Impostazioni');
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000}})});
+    if(!res.ok){const t=await res.text();throw new Error(`Gemini ${res.status}: ${t.slice(0,200)}`);}
+    const data=await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  }else{
+    // Claude (default)
+    const key=(S.settings['claude_key']||'').trim();
+    if(!key)throw new Error('Chiave Claude non configurata nelle Impostazioni');
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok){const t=await res.text();throw new Error(`Claude ${res.status}: ${t.slice(0,200)}`);}
+    const data=await res.json();
+    return data.content?.[0]?.text||'';
+  }
 }
 function buildEmailPrompt(p,campagna,sede,tpl,tipo,tono){
   const sedeDesc=sede?`${sede.nome} (${sede.indirizzo})`:'il nostro Centro Medicina dello Sport';
@@ -797,7 +831,9 @@ function openEditTemplate(id){
   openModal();
 }
 function openGeneraTemplate(){
-  if(!S.settings['claude_key']){toast('Configura Claude API Key','warn');return;}
+  const _prov=S.settings['ai_provider']||'claude';
+  const _key=S.settings[_prov==='groq'?'groq_key':_prov==='gemini'?'gemini_key':'claude_key'];
+  if(!_key){toast('Configura una chiave AI nelle Impostazioni (Claude, Groq o Gemini)','warn');return;}
   $('modal-title').textContent='Genera template con AI';$('modal-box').className='modal modal-lg';
   $('modal-body').innerHTML=`
     <div class="frow"><div class="fgroup"><label>Tipo</label><select id="gt-tipo"><option value="primo_contatto">Primo contatto</option><option value="followup_1">Follow-up 1</option><option value="followup_2">Follow-up 2</option></select></div>
@@ -811,8 +847,7 @@ function openGeneraTemplate(){
     try{
       const tipo=$('gt-tipo').value,sport=$('gt-sport').value,note=$('gt-note').value;
       const prompt=`Crea template email per Medi Group per proporre medicina dello sport ad associazioni (${sport||'generico'}). Tipo: ${{primo_contatto:'primo contatto',followup_1:'primo follow-up',followup_2:'secondo follow-up'}[tipo]}. ${note?'Istruzioni: '+note:''} Usa variabili {{nome}} {{sport}} {{citta}} {{km}} {{sede}}. Formato:\nOGGETTO: [oggetto]\n---\n[corpo max 150 parole, in italiano]`;
-      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
-      const data=await res.json();const testo=data.content?.[0]?.text||'';
+      const testo=await callAI(prompt);
       const parts=testo.split('---');const oggetto=(parts[0]||'').replace(/OGGETTO:\s*/i,'').trim();const corpo=(parts[1]||testo).trim();
       $('gt-out').innerHTML=`<div style="margin-top:16px;">
         <div class="fgroup" style="margin-bottom:10px;"><label>Oggetto</label><input type="text" id="gt-ogg-out" value="${esc(oggetto)}" style="width:100%;"/></div>
@@ -941,10 +976,22 @@ function renderSettings(pb){
       ${renderKey('google_maps_key','Google Maps API Key','Per la ricerca automatica prospect.','AIza...')}
       ${renderKey('hunter_key','Hunter.io API Key','Ricerca email. Piano free: 25/mese.','hunter_...')}
       ${renderKey('claude_key','Anthropic Claude API Key','Generazione email e template AI.','sk-ant-...')}
+      ${renderKey('groq_key','Groq API Key (gratuita)','Alternativa gratuita a Claude. llama-3.1-8b.','gsk_...')}
+      ${renderKey('gemini_key','Google Gemini API Key (gratuita)','Alternativa gratuita a Claude. gemini-1.5-flash.','AIza...')}
       ${renderKeyText('brevo_sender','Email mittente','Es: commerciale@medicalgroup.it','info@medicalgroup.it')}
     </div></div>
     <div>
       <div class="card" style="margin-bottom:16px;"><div class="settings-section"><h4>Parametri</h4>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+            <div><div class="setting-label">Provider AI</div><div class="setting-desc">Usato per generare email e template</div></div>
+            <select id="set-ai-provider" style="width:160px;">
+              <option value="claude" ${(S.settings['ai_provider']||'claude')==='claude'?'selected':''}>Claude (Anthropic)</option>
+              <option value="groq" ${S.settings['ai_provider']==='groq'?'selected':''}>Groq (gratuito)</option>
+              <option value="gemini" ${S.settings['ai_provider']==='gemini'?'selected':''}>Gemini (gratuito)</option>
+            </select>
+          </div>
+        </div>
         <div class="setting-row"><div class="setting-info"><div class="setting-label">Giorni prima follow-up</div><div class="setting-desc">Giorni senza risposta prima che appaia nel follow-up</div></div>
           <select id="set-fu" style="width:90px;">${[3,4,5,7].map(n=>`<option value="${n}" ${(S.settings['followup_days']||'4')===String(n)?'selected':''}>${n} giorni</option>`).join('')}</select>
         </div>
@@ -967,7 +1014,7 @@ function renderSettings(pb){
     const chiave=btn.dataset.key;const input=document.getElementById('k-'+chiave);const valore=input.value.trim();if(!valore)return;
     await saveSettings(chiave,valore);input.classList.add('saved');setTimeout(()=>input.classList.remove('saved'),2000);toast('Salvato');
   }));
-  $('btn-save-cfg')&&$('btn-save-cfg').addEventListener('click',async()=>{await saveSettings('followup_days',$('set-fu').value);toast('Parametri salvati');});
+  $('btn-save-cfg')&&$('btn-save-cfg').addEventListener('click',async()=>{await saveSettings('followup_days',$('set-fu').value);if($('set-ai-provider'))await saveSettings('ai_provider',$('set-ai-provider').value);toast('Parametri salvati');});
 }
 function renderKeyText(chiave,label,desc,placeholder){
   const val=S.settings[chiave]||'';

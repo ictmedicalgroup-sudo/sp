@@ -484,17 +484,31 @@ async function lanciaHunter(){
     $('hn-a').disabled=true;$('hn-a').textContent='Ricerca...';
     let ok=0,skip=0;
     for(const p of list){
-      if(!p.sito_web){skip++;continue;}
+      if(!p.sito_web){
+        skip++;
+        await addLog('hunter',`Hunter: ${esc(p.nome)}`,`Saltato — nessun sito web`);
+        continue;
+      }
+      const domain=p.sito_web.replace(/https?:\/\//,'').replace(/\/.*/,'');
       try{
-        const domain=p.sito_web.replace(/https?:\/\//,'').replace(/\/.*/,'');
         const res=await fetch(`https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${S.settings['hunter_key']}`);
         const data=await res.json();
         if(data.data?.emails?.length>0){
-          await db('PATCH',T('prospect'),{flt:`id=eq.${p.id}`,body:{email:data.data.emails[0].value,email_verificata:true,stato:'email_trovata',updated_at:new Date().toISOString()}});ok++;
-        }else skip++;
-      }catch(e){skip++;}
+          const email=data.data.emails[0].value;
+          const conf=data.data.emails[0].confidence||'?';
+          await db('PATCH',T('prospect'),{flt:`id=eq.${p.id}`,body:{email,email_verificata:true,stato:'email_trovata',updated_at:new Date().toISOString()}});
+          await addLog('hunter',`Hunter: ${p.nome}`,`Trovata: ${email} (confidence ${conf}%) — dominio: ${domain}`);
+          ok++;
+        }else{
+          await addLog('hunter',`Hunter: ${p.nome}`,`Nessuna email — dominio: ${domain}`);
+          skip++;
+        }
+      }catch(e){
+        await addLog('hunter',`Hunter: ${p.nome}`,`Errore ricerca — ${e.message}`);
+        skip++;
+      }
     }
-    await addLog('hunter','Ricerca Hunter.io',`${ok} trovate, ${skip} saltate`);
+    await addLog('hunter','Riepilogo Hunter.io',`${ok} email trovate, ${skip} saltate su ${list.length} prospect`);
     toast(`Hunter: ${ok} trovate, ${skip} saltate`);
     S.selezionati.clear();await loadAll();closeModal();goPage('prospect');updateBadges();
   });
@@ -900,9 +914,14 @@ async function eliminaSede(id){
 function renderLog(pb){
   const icons={search:'&#128269;',email:'&#9993;',hunter:'&#127919;',system:'&#9881;'};
   pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Log Attivita</div><div class="page-subtitle">Registro operazioni</div></div><button class="btn btn-secondary btn-sm" id="btn-rl">Aggiorna</button></div>
-  <div class="card">${!S.log.length?'<div class="empty"><div class="ei">&#128203;</div><p>Nessuna attivita</p></div>':
-  S.log.map(l=>`<div class="log-item"><div class="log-icon ${l.tipo||'system'}">${icons[l.tipo]||'&#9881;'}</div><div style="flex:1;"><div class="log-azione">${esc(l.azione)}</div><div class="log-dettaglio">${esc(l.dettaglio||'')}</div></div><div class="log-time">${fmtDT(l.created_at)}</div></div>`).join('')}</div></div>`;
+  <div class="tabs"><div class="tab active" data-ltab="tutti">Tutti (${S.log.length})</div><div class="tab" data-ltab="hunter">Hunter.io (${S.log.filter(l=>l.tipo==='hunter').length})</div><div class="tab" data-ltab="email">Email (${S.log.filter(l=>l.tipo==='email').length})</div></div>
+  <div id="ltab-content"></div></div>`;
+  document.querySelectorAll('[data-ltab]').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('[data-ltab]').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');renderLogTab(t.dataset.ltab);
+  }));
   $('btn-rl').addEventListener('click',async()=>{await loadAll();renderLog($('pb'));toast('Aggiornato');});
+  renderLogTab('tutti');
 }
 function renderSettings(pb){
   pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Impostazioni</div><div class="page-subtitle">API key e parametri</div></div></div>
@@ -975,6 +994,38 @@ async function saveSettings(chiave,valore){
     else await db('POST',T('settings'),{body:{chiave:tsKey,valore:now,created_at:now}});
     S.settings[tsKey]=now;
   }catch(e){toast('Errore salvataggio','err');}
+}
+function renderLogTab(tab){
+  const c=$('ltab-content');if(!c)return;
+  const icons={search:'&#128269;',email:'&#9993;',hunter:'&#127919;',system:'&#9881;'};
+  const list=tab==='tutti'?S.log:S.log.filter(l=>l.tipo===tab);
+  if(!list.length){c.innerHTML='<div class="empty"><div class="ei">&#128203;</div><p>Nessun log per questa categoria</p></div>';return;}
+  // For hunter tab: show summary card on top
+  let extra='';
+  if(tab==='hunter'){
+    const trovate=list.filter(l=>l.azione.startsWith('Hunter:')&&(l.dettaglio||'').startsWith('Trovata:')).length;
+    const saltate=list.filter(l=>l.azione.startsWith('Hunter:')&&!(l.dettaglio||'').startsWith('Trovata:')&&!l.azione.includes('Riepilogo')).length;
+    const tot=trovate+saltate;
+    extra=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-val">${tot}</div><div class="stat-lbl">Ricerche totali</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--verde);">${trovate}</div><div class="stat-lbl">Email trovate</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--g300);">${saltate}</div><div class="stat-lbl">Nessun risultato</div></div>
+    </div>`;
+  }
+  c.innerHTML=extra+`<div class="card">${list.map(l=>{
+    const isHunterFound=l.tipo==='hunter'&&(l.dettaglio||'').startsWith('Trovata:');
+    const isHunterMiss=l.tipo==='hunter'&&(l.dettaglio||'').startsWith('Nessuna');
+    const isHunterSkip=l.tipo==='hunter'&&(l.dettaglio||'').startsWith('Saltato');
+    const rowBg=isHunterFound?'background:var(--blue-xlight);border-radius:var(--rsm);':'';
+    return`<div class="log-item" style="${rowBg}">
+      <div class="log-icon ${l.tipo||'system'}">${icons[l.tipo]||'&#9881;'}</div>
+      <div style="flex:1;">
+        <div class="log-azione">${esc(l.azione)}</div>
+        <div class="log-dettaglio" style="${isHunterFound?'color:var(--verde);font-weight:600;':isHunterMiss||isHunterSkip?'color:var(--g300);':''}">${esc(l.dettaglio||'')}</div>
+      </div>
+      <div class="log-time">${fmtDT(l.created_at)}</div>
+    </div>`;
+  }).join('')}</div>`;
 }
 async function addLog(tipo,azione,dettaglio=''){
   try{const r=await db('POST',T('log'),{body:{tipo,azione,dettaglio,created_at:new Date().toISOString()}});if(r?.[0])S.log.unshift(r[0]);}catch(e){}

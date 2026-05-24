@@ -855,20 +855,22 @@ function mostraEmailGenerata(p,testo,tipo){
   ib.onclick=()=>inviaEmail(p.id,oggetto,corpo,tipo);
 }
 async function inviaEmail(prospectId,oggetto,testo,tipo){
-  if(!S.settings['brevo_key']){toast('Configura Brevo API Key nelle Impostazioni','warn');return;}
   const p=S.prospect.find(x=>x.id===prospectId);if(!p?.email){toast('Email mancante','err');return;}
   const testoFinale=$('ge-testo')?$('ge-testo').value:testo;
   const oggettoFinale=$('ge-ogg')?$('ge-ogg').value:oggetto;
   const btn=$('ge-i');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Invio...';
   try{
-    // 1. Prima invia con Brevo — salva solo se va a buon fine
-    const brevoRes=await fetch('https://api.brevo.com/v3/smtp/email',{method:'POST',
-      headers:{'api-key':S.settings['brevo_key'],'Content-Type':'application/json'},
-      body:JSON.stringify({sender:{name:'Medi Group',email:S.settings['brevo_sender']||'info@medicalgroup.it'},
-        to:[{email:p.email}],subject:oggettoFinale,
-        htmlContent:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">${testoFinale}</pre>`})});
-    const brevoText=await brevoRes.text();
-    if(!brevoRes.ok)throw new Error(`Brevo ${brevoRes.status}: ${brevoText}`);
+    // 1. Invia via Edge Function sp-invia-email (Brevo lato server, no CORS/IP issues)
+    const brevoRes=await fetch(`${CFG.FN}/sp-invia-email`,{method:'POST',
+      headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to:p.email,subject:oggettoFinale,
+        htmlContent:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">${testoFinale}</pre>`,
+        senderName:'Medi Group',
+        senderEmail:S.settings['brevo_sender']||'info@medicalgroup.it',
+      })});
+    const brevoData=await brevoRes.json();
+    if(!brevoRes.ok||!brevoData.ok)throw new Error(brevoData.error||`Errore invio ${brevoRes.status}`);
     // 2. Solo se Brevo ha accettato, salva nel db
     const emailRows=await db('POST',T('email'),{body:{prospect_id:prospectId,tipo,oggetto:oggettoFinale,
       testo_plain:testoFinale,testo_html:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;">${testoFinale}</pre>`,

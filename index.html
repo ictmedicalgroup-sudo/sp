@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gestione Prospect Sport — Medical Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --verde:         #9DBF60;
+  --grigio:        #77797a;
+  --grigio-chiaro: #aaaaaa;
+  --navy:          #4A4C4D;
+  --blue:          #77797a;
+  --blue-mid:      #9DBF60;
+  --blue-light:    #D5E3B7;
+  --blue-xlight:   #EEF5E3;
+  --accent:        #9DBF60;
+  --accent-light:  #EEF5E3;
+  --red:           #C0392B;
+  --red-light:     #FDECEA;
+  --green:         #9DBF60;
+  --green-light:   #EEF5E3;
+  --orange:        #E67E22;
+  --orange-light:  #FEF0E3;
+  --purple:        #8E44AD;
+  --purple-light:  #F4EAF9;
+  --g50:  #F8F9F8;
+  --g100: #F0F2EE;
+  --g200: #E2E6DF;
+  --g300: #C8CEC4;
+  --g500: #77797a;
+  --g700: #4A4C4D;
+  --g900: #2A2C2D;
+  --sh-sm: 0 1px 3px rgba(74,76,77,.08), 0 1px 2px rgba(74,76,77,.05);
+  --sh-md: 0 4px 12px rgba(74,76,77,.10);
+  --sh-lg: 0 12px 32px rgba(74,76,77,.14), 0 4px 10px rgba(74,76,77,.07);
+  --r:   10px;
+  --rsm:  6px;
+  --rlg: 16px;
+  font-family: 'Raleway', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--g50);color:var(--g900);font-family:'Raleway',sans-serif;font-size:14px;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--r);
+  font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);
+  transition:all .25s;pointer-events:none;max-width:360px;}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.tok{background:var(--g900);color:#fff;}
+#toast.terr{background:var(--red);color:#fff;}
+#toast.twarn{background:var(--orange);color:#fff;}
+
+/* ── LOGIN ── */
+#lp{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--g50);}
+.lcard{background:#fff;border-radius:var(--rlg);padding:40px 38px;width:100%;max-width:420px;
+  box-shadow:var(--sh-lg);border:1px solid var(--g200);}
+.lcard h2{font-size:22px;font-weight:700;color:var(--navy);margin:20px 0 6px;}
+.lcard p{font-size:13px;color:var(--g500);margin-bottom:24px;}
+.lfield{margin-bottom:16px;}
+.lfield label{display:block;font-size:12px;font-weight:600;color:var(--g700);
+  letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+.lfield input{width:100%;padding:11px 14px;border:1px solid var(--g200);
+  border-radius:var(--rsm);background:#EEF5E3;font-family:'Raleway',sans-serif;
+  font-size:14px;color:var(--g900);outline:none;transition:border-color .2s;}
+.lfield input:focus{border-color:var(--verde);}
+.lbtn{width:100%;padding:12px;background:var(--verde);color:#fff;border:none;
+  border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:14px;
+  font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:.3px;}
+.lbtn:hover{opacity:.88;}
+.lerr{background:var(--red-light);color:var(--red);border-radius:var(--rsm);
+  padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;}
+
+/* ── APP ── */
+#app{display:flex;flex-direction:column;min-height:100vh;display:none;}
+#topbar{background:#fff;border-bottom:1px solid var(--g200);padding:0 28px;
+  position:sticky;top:0;z-index:100;box-shadow:var(--sh-sm);}
+#tb-top{height:52px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--g100);}
+#tb-right{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--g500);}
+#tb-user{font-weight:600;color:var(--navy);}
+#tb-role{background:var(--blue-xlight);color:var(--verde);padding:3px 8px;
+  border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+#lout{background:none;border:1px solid var(--g200);border-radius:var(--rsm);
+  padding:5px 12px;font-family:'Raleway',sans-serif;font-size:12px;font-weight:600;
+  color:var(--g500);cursor:pointer;transition:all .2s;}
+#lout:hover{border-color:var(--red);color:var(--red);}
+#tb-nav{height:40px;display:flex;align-items:stretch;}
+.tnb{display:flex;align-items:center;gap:6px;padding:0 16px;font-size:12.5px;
+  font-weight:600;color:var(--g500);cursor:pointer;border:none;background:none;
+  font-family:'Raleway',sans-serif;letter-spacing:.3px;
+  border-bottom:2.5px solid transparent;transition:all .17s;text-transform:uppercase;}
+.tnb:hover{color:var(--g700);border-bottom-color:var(--g300);}
+.tnb.active{color:var(--verde);border-bottom-color:var(--verde);}
+.tnb .badge{background:var(--verde);color:#fff;border-radius:20px;padding:1px 7px;
+  font-size:10px;font-weight:800;}
+
+main#main{flex:1;padding:28px;max-width:1400px;margin:0 auto;width:100%;}
+#pb{}
+
+/* ── SEZIONE HEADER ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.page-title{font-size:20px;font-weight:800;color:var(--navy);}
+.page-subtitle{font-size:13px;color:var(--g500);margin-top:2px;}
+
+/* ── CARD ── */
+.card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);
+  box-shadow:var(--sh-sm);padding:20px;}
+.card-title{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:16px;}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);
+  padding:18px 20px;box-shadow:var(--sh-sm);}
+.stat-val{font-size:28px;font-weight:800;color:var(--navy);}
+.stat-lbl{font-size:11px;color:var(--g500);font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;margin-top:2px;}
+.stat-sub{font-size:11px;color:var(--verde);font-weight:600;margin-top:4px;}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.btn{padding:8px 16px;border-radius:var(--rsm);font-family:'Raleway',sans-serif;
+  font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:all .2s;
+  display:inline-flex;align-items:center;gap:6px;letter-spacing:.2px;}
+.btn-primary{background:var(--verde);color:#fff;}
+.btn-primary:hover{opacity:.88;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-secondary{background:#fff;color:var(--g700);border:1px solid var(--g200);}
+.btn-secondary:hover{border-color:var(--g300);background:var(--g50);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{opacity:.88;}
+.btn-sm{padding:5px 11px;font-size:11.5px;}
+.btn-orange{background:var(--orange);color:#fff;}
+.btn-orange:hover{opacity:.88;}
+
+input[type=text],input[type=email],select,textarea{
+  padding:8px 12px;border:1px solid var(--g200);border-radius:var(--rsm);
+  font-family:'Raleway',sans-serif;font-size:13px;color:var(--g900);
+  background:#fff;outline:none;transition:border-color .2s;}
+input[type=text]:focus,input[type=email]:focus,select:focus,textarea:focus{border-color:var(--verde);}
+select{cursor:pointer;}
+
+/* ── TABELLA ── */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--g200);}
+table{width:100%;border-collapse:collapse;background:#fff;}
+thead th{background:var(--g100);padding:10px 14px;text-align:left;font-size:11.5px;
+  font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.4px;
+  border-bottom:1px solid var(--g200);white-space:nowrap;}
+thead th:first-child{border-radius:var(--r) 0 0 0;}
+thead th:last-child{border-radius:0 var(--r) 0 0;}
+tbody tr{border-bottom:1px solid var(--g100);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--g50);}
+tbody td{padding:10px 14px;font-size:13px;color:var(--g700);vertical-align:middle;}
+.cb-col{width:40px;}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:pointer;}
+
+/* ── BADGE STATO ── */
+.badge-stato{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap;}
+.s-nuovo{background:#EEF5E3;color:#5a8a2e;}
+.s-email_trovata{background:#E3F0FF;color:#1a5fa8;}
+.s-contattato{background:var(--orange-light);color:#b05a0a;}
+.s-risposto{background:var(--purple-light);color:#6a2d8a;}
+.s-call{background:var(--blue-xlight);color:#2e7a5a;}
+.s-cliente{background:var(--green-light);color:#2e6e1a;}
+.s-no{background:var(--red-light);color:var(--red);}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.dot-nuovo{background:#9DBF60;}
+.dot-email_trovata{background:#3a7fd4;}
+.dot-contattato{background:var(--orange);}
+.dot-risposto{background:var(--purple);}
+.dot-call{background:#2e9e6a;}
+.dot-cliente{background:#3a9e1a;}
+.dot-no{background:var(--red);}
+
+/* ── SELEZIONE COUNTER ── */
+.sel-bar{background:var(--blue-xlight);border:1px solid var(--blue-light);
+  border-radius:var(--r);padding:12px 16px;margin-bottom:14px;
+  display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.sel-bar.visible{display:flex;}
+.sel-info{font-size:13px;font-weight:600;color:var(--navy);}
+.sel-info span{color:var(--verde);font-weight:800;}
+.sel-warning{font-size:12px;color:var(--orange);font-weight:600;}
+
+/* ── MODAL ── */
+#modal-overlay{position:fixed;inset:0;background:rgba(74,76,77,.45);
+  z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+#modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:var(--rlg);box-shadow:var(--sh-lg);
+  width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;}
+.modal-lg{max-width:820px;}
+.modal-head{padding:20px 24px 16px;border-bottom:1px solid var(--g200);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-head h3{font-size:16px;font-weight:800;color:var(--navy);}
+.modal-close{background:none;border:none;font-size:20px;color:var(--g500);
+  cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;transition:all .2s;}
+.modal-close:hover{background:var(--g100);color:var(--g900);}
+.modal-body{padding:24px;overflow-y:auto;flex:1;}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--g200);
+  display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;}
+
+/* ── FORM ── */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.frow.full{grid-template-columns:1fr;}
+.fgroup{display:flex;flex-direction:column;gap:5px;}
+.fgroup label{font-size:12px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.4px;}
+.fgroup input,.fgroup select,.fgroup textarea{width:100%;}
+.fgroup textarea{resize:vertical;min-height:100px;line-height:1.5;}
+
+/* ── EMAIL PREVIEW ── */
+.email-preview{background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);
+  padding:16px;font-size:13px;line-height:1.7;color:var(--g700);white-space:pre-wrap;}
+.email-meta{background:var(--blue-xlight);border-radius:var(--rsm);padding:10px 14px;
+  margin-bottom:12px;font-size:12px;}
+.email-meta strong{color:var(--navy);}
+
+/* ── PIPELINE KANBAN ── */
+.kanban{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;}
+.kan-col{background:var(--g100);border-radius:var(--r);padding:14px;}
+.kan-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--g500);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.kan-head .cnt{background:var(--g300);color:var(--g700);border-radius:20px;
+  padding:1px 8px;font-size:11px;font-weight:800;}
+.kan-card{background:#fff;border:1px solid var(--g200);border-radius:var(--rsm);
+  padding:12px;margin-bottom:8px;box-shadow:var(--sh-sm);cursor:pointer;transition:all .2s;}
+.kan-card:hover{box-shadow:var(--sh-md);transform:translateY(-1px);}
+.kan-card .kc-nome{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.kan-card .kc-sport{font-size:11px;color:var(--g500);}
+.kan-card .kc-citta{font-size:11px;color:var(--g500);}
+
+/* ── LOG ── */
+.log-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--g100);}
+.log-item:last-child{border-bottom:none;}
+.log-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px;}
+.log-icon.search{background:var(--blue-xlight);}
+.log-icon.email{background:var(--green-light);}
+.log-icon.reply{background:var(--purple-light);}
+.log-icon.hunter{background:var(--orange-light);}
+.log-icon.system{background:var(--g100);}
+.log-body{flex:1;}
+.log-azione{font-size:13px;font-weight:600;color:var(--navy);}
+.log-dettaglio{font-size:12px;color:var(--g500);margin-top:2px;}
+.log-time{font-size:11px;color:var(--grigio-chiaro);white-space:nowrap;margin-top:2px;}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--g500);}
+.empty .ei{font-size:36px;margin-bottom:12px;}
+.empty p{font-size:14px;font-weight:500;}
+.empty small{font-size:12px;color:var(--g300);display:block;margin-top:6px;}
+
+/* ── LOADING ── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--g200);
+  border-top-color:var(--verde);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{position:absolute;inset:0;background:rgba(255,255,255,.75);
+  display:flex;align-items:center;justify-content:center;border-radius:var(--r);z-index:10;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--g200);margin-bottom:20px;}
+.tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--g500);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
+.tab:hover{color:var(--g700);}
+.tab.active{color:var(--verde);border-bottom-color:var(--verde);}
+
+/* ── SETTINGS ── */
+.settings-section{margin-bottom:28px;}
+.settings-section h4{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--g200);}
+.setting-row{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--g100);}
+.setting-row:last-child{border-bottom:none;}
+.setting-info{}
+.setting-label{font-size:13px;font-weight:600;color:var(--navy);}
+.setting-desc{font-size:12px;color:var(--g500);margin-top:2px;}
+.setting-val{display:flex;align-items:center;gap:8px;}
+.key-input{font-family:monospace;font-size:12px;width:260px;background:var(--g50);}
+.key-input.saved{border-color:var(--verde);background:var(--green-light);}
+
+/* ── INFO BOX ── */
+.info-box{background:var(--blue-xlight);border:1px solid var(--blue-light);
+  border-radius:var(--r);padding:14px 16px;font-size:13px;color:var(--navy);margin-bottom:16px;}
+.info-box strong{font-weight:700;}
+.warn-box{background:var(--orange-light);border:1px solid #f5c28a;
+  border-radius:var(--r);padding:14px 16px;font-size:13px;color:#7a3800;margin-bottom:16px;}
+
+/* ── NOTA ── */
+.nota{font-size:11px;color:var(--g500);font-style:italic;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  main#main{padding:16px;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  .frow{grid-template-columns:1fr;}
+  #tb-nav{overflow-x:auto;}
+  .tnb{padding:0 12px;font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="lp">
+  <div class="lcard">
+    <div id="login-logo"></div>
+    <h2>Accedi</h2>
+    <p>Inserisci le tue credenziali Medical Group per continuare.</p>
+    <div id="lerr" class="lerr"></div>
+    <div class="lfield">
+      <label>Email</label>
+      <input type="text" id="lemail" placeholder="nome@medigroup.it" autocomplete="username"/>
+    </div>
+    <div class="lfield">
+      <label>Password</label>
+      <input type="password" id="lpwd" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="lbtn" id="lbtn-login">Accedi</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topbar">
+    <div id="tb-top">
+      <div id="tb-logo"></div>
+      <div id="tb-right">
+        <span id="tb-date"></span>
+        <span id="tb-user"></span>
+        <span id="tb-role"></span>
+        <button id="lout">Esci</button>
+      </div>
+    </div>
+    <nav id="tb-nav">
+      <button class="tnb active" data-page="prospect">🔍 Prospect</button>
+      <button class="tnb" data-page="email">✉️ Email <span class="badge" id="badge-email" style="display:none"></span></button>
+      <button class="tnb" data-page="followup">🔁 Follow-up <span class="badge" id="badge-followup" style="display:none"></span></button>
+      <button class="tnb" data-page="pipeline">📊 Pipeline</button>
+      <button class="tnb" data-page="log">📋 Log</button>
+      <button class="tnb" data-page="settings">⚙️ Impostazioni</button>
+    </nav>
+  </div>
+  <main id="main">
+    <div id="pb"></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal" id="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-title">Modale</h3>
+      <button class="modal-close" id="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<script>
+/* ── CONFIG ─────────────────────────────────────────────────── */
+const CFG = {
+  URL: 'https://iczsdqcnvauopwkuspti.supabase.co',
+  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljenNkcWNudmF1b3B3a3VzcHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTQ0MjMsImV4cCI6MjA5MjQzMDQyM30.SmcRHPLM2PEq4Hn-5CQhMyQKoz0PN_0lbN_X3l9MNUE',
+  FN:  'https://iczsdqcnvauopwkuspti.supabase.co/functions/v1',
+};
+const T = n => `sp_${n}`;
+
+/* ── STATO GLOBALE ───────────────────────────────────────────── */
+const S = {
+  user: null, token: null, ruolo: null,
+  page: 'prospect',
+  prospect: [], email: [], log: [],
+  filtri: { stato: '', sport: '', search: '' },
+  selezionati: new Set(),
+  settings: {},
+};
+
+/* ── UTILITIES ───────────────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const p2 = n => String(n).padStart(2,'0');
+function fmt(d){
+  if(!d)return'—';
+  const dt=typeof d==='string'?new Date(d.length===10?d+'T00:00:00':d):d;
+  return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function fmtDT(d){
+  if(!d)return'—';
+  const dt=new Date(d);
+  return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function dateToStr(d){return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+
+let _tid;
+function toast(msg,type='ok'){
+  const el=$('toast'); clearTimeout(_tid);
+  el.textContent=msg; el.className=`show t${type}`;
+  _tid=setTimeout(()=>el.className='',3200);
+}
+
+/* ── SUPABASE REST ───────────────────────────────────────────── */
+async function db(method,table,opts={}){
+  const{flt='',body=null,sel='*',ord='',lim=''}=opts;
+  let url=`${CFG.URL}/rest/v1/${table}?select=${sel}`;
+  if(flt)url+=`&${flt}`;
+  if(ord)url+=`&order=${ord}`;
+  if(lim)url+=`&limit=${lim}`;
+  const headers={
+    'apikey':CFG.KEY,
+    'Authorization':`Bearer ${S.token||CFG.KEY}`,
+    'Content-Type':'application/json',
+    'Prefer':method==='POST'?'return=representation':'',
+  };
+  const res=await fetch(url,{method,headers,body:body?JSON.stringify(body):undefined});
+  if(!res.ok){const e=await res.text();throw new Error(`${method} ${table}: ${e}`);}
+  return method==='DELETE'?null:res.json();
+}
+async function supaAuth(email,pwd){
+  const res=await fetch(`${CFG.URL}/auth/v1/token?grant_type=password`,{
+    method:'POST',
+    headers:{'apikey':CFG.KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({email,password:pwd}),
+  });
+  return res.json();
+}
+
+/* ── AUTH ────────────────────────────────────────────────────── */
+async function doLogin(){
+  const email=$('lemail').value.trim();
+  const pwd=$('lpwd').value;
+  const err=$('lerr');
+  err.style.display='none';
+  if(!email||!pwd){err.textContent='Inserisci email e password.';err.style.display='block';return;}
+  const btn=$('lbtn-login');
+  btn.textContent='Accesso in corso...';btn.disabled=true;
+  try{
+    const data=await supaAuth(email,pwd);
+    if(data.error){err.textContent=data.error_description||data.error;err.style.display='block';return;}
+    S.token=data.access_token;
+    S.user={email:data.user.email,id:data.user.id};
+    // carica profilo sp_
+    try{
+      const profili=await db('GET',T('profili'),{flt:`id=eq.${data.user.id}`});
+      if(profili&&profili.length){
+        S.ruolo=profili[0].ruolo;
+        S.user.nome=profili[0].nome;
+        S.user.cognome=profili[0].cognome;
+      }else{
+        S.ruolo='viewer';
+        S.user.nome=email.split('@')[0];
+        S.user.cognome='';
+      }
+    }catch(e){S.ruolo='viewer';}
+    await initApp();
+  }catch(e){err.textContent='Errore di connessione. Riprova.';err.style.display='block';}
+  finally{btn.textContent='Accedi';btn.disabled=false;}
+}
+function doLogout(){
+  S.user=null;S.token=null;S.ruolo=null;
+  $('app').style.display='none';
+  $('lp').style.display='flex';
+  $('lemail').value='';$('lpwd').value='';
+}
+
+/* ── LOGO ────────────────────────────────────────────────────── */
+function logoSVG(small){
+  const w=small?28:36,h=small?22:28;
+  return`<svg width="${w}" height="${h}" viewBox="0 0 90 70" fill="none">
+    <circle cx="28" cy="22" r="19" stroke="#D5E3B7" stroke-width="3.5" fill="none"/>
+    <circle cx="40" cy="38" r="24" stroke="#77797A" stroke-width="3.5" fill="none"/>
+  </svg>`;
+}
+function logoHTML(small=false){
+  return`<div style="display:flex;align-items:center;gap:${small?6:10}px;">
+    ${logoSVG(small)}
+    <div style="line-height:1.15;">
+      <div style="font-weight:300;font-size:${small?11:14}px;letter-spacing:4px;text-transform:uppercase;">
+        <span style="color:var(--grigio);">MEDICAL</span><span style="color:var(--verde);">GROUP</span>
+      </div>
+      <div style="font-size:9px;letter-spacing:2px;color:var(--grigio-chiaro);text-transform:uppercase;font-weight:500;">
+        Prospect Sport
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── INIT APP ────────────────────────────────────────────────── */
+async function initApp(){
+  $('lp').style.display='none';
+  $('app').style.display='flex';
+  // topbar
+  const now=new Date();
+  $('tb-date').textContent=now.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'});
+  $('tb-user').textContent=`${S.user.nome||''} ${S.user.cognome||''}`.trim()||S.user.email;
+  $('tb-role').textContent=S.ruolo||'viewer';
+  // nav click
+  document.querySelectorAll('.tnb').forEach(b=>{
+    b.addEventListener('click',()=>goPage(b.dataset.page));
+  });
+  $('lout').addEventListener('click',doLogout);
+  await loadAll();
+  goPage('prospect');
+  updateBadges();
+}
+
+/* ── CARICAMENTO DATI ────────────────────────────────────────── */
+async function loadAll(){
+  try{
+    [S.prospect,S.email,S.log]=await Promise.all([
+      db('GET',T('prospect'),{ord:'created_at.desc'}).catch(()=>[]),
+      db('GET',T('email'),{ord:'created_at.desc'}).catch(()=>[]),
+      db('GET',T('log'),{ord:'created_at.desc',lim:'200'}).catch(()=>[]),
+    ]);
+    // carica settings
+    try{
+      const sv=await db('GET',T('settings'),{});
+      S.settings={};
+      (sv||[]).forEach(r=>{S.settings[r.chiave]=r.valore;});
+    }catch(e){}
+  }catch(e){toast('Errore caricamento dati','err');}
+}
+
+function updateBadges(){
+  // email da approvare
+  const daApprovare=S.prospect.filter(p=>p.stato==='email_trovata'&&p.email).length;
+  const bEmail=$('badge-email');
+  if(daApprovare>0){bEmail.textContent=daApprovare;bEmail.style.display='inline';}
+  else bEmail.style.display='none';
+  // follow-up
+  const daFollowup=prospectDaFollowup().length;
+  const bFu=$('badge-followup');
+  if(daFollowup>0){bFu.textContent=daFollowup;bFu.style.display='inline';}
+  else bFu.style.display='none';
+}
+
+function prospectDaFollowup(){
+  const soglia=new Date();
+  soglia.setDate(soglia.getDate()-4);
+  return S.prospect.filter(p=>{
+    if(p.stato!=='contattato')return false;
+    const lastEmail=S.email.filter(e=>e.prospect_id===p.id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+    if(!lastEmail)return false;
+    return new Date(lastEmail.created_at)<soglia;
+  });
+}
+
+/* ── NAVIGAZIONE ─────────────────────────────────────────────── */
+function goPage(pg){
+  S.page=pg;
+  document.querySelectorAll('.tnb').forEach(b=>b.classList.toggle('active',b.dataset.page===pg));
+  const pb=$('pb');
+  if(pg==='prospect') renderProspect(pb);
+  else if(pg==='email') renderEmail(pb);
+  else if(pg==='followup') renderFollowup(pb);
+  else if(pg==='pipeline') renderPipeline(pb);
+  else if(pg==='log') renderLog(pb);
+  else if(pg==='settings') renderSettings(pb);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINA PROSPECT
+══════════════════════════════════════════════════════════════ */
+function statoBadge(stato){
+  const labels={
+    nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',
+    risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',no:'Non interessato'
+  };
+  return`<span class="badge-stato s-${stato}"><span class="dot dot-${stato}"></span>${labels[stato]||stato}</span>`;
+}
+
+function renderProspect(pb){
+  S.selezionati.clear();
+  const prospect=S.prospect.filter(p=>{
+    if(S.filtri.stato&&p.stato!==S.filtri.stato)return false;
+    if(S.filtri.sport&&!(p.sport||'').toLowerCase().includes(S.filtri.sport.toLowerCase()))return false;
+    if(S.filtri.search){
+      const q=S.filtri.search.toLowerCase();
+      if(!(p.nome||'').toLowerCase().includes(q)&&!(p.citta||'').toLowerCase().includes(q))return false;
+    }
+    return true;
+  });
+
+  const contatori={nuovo:0,email_trovata:0,contattato:0,risposto:0,call:0,cliente:0,no:0};
+  S.prospect.forEach(p=>{if(contatori[p.stato]!==undefined)contatori[p.stato]++;});
+  const hunterUsed=S.prospect.filter(p=>p.email_verificata).length;
+
+  pb.innerHTML=`
+  <div class="page-header">
+    <div>
+      <div class="page-title">Prospect Medicina dello Sport</div>
+      <div class="page-subtitle">Associazioni sportive, palestre e ASD nel raggio 30km da Bareggio</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      ${S.ruolo==='admin'?`<button class="btn btn-secondary" id="btn-add-manuale">+ Aggiungi manuale</button>
+      <button class="btn btn-primary" id="btn-cerca-maps">🗺️ Cerca su Google Maps</button>`:''}
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-val">${S.prospect.length}</div>
+      <div class="stat-lbl">Prospect totali</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${contatori.nuovo}</div>
+      <div class="stat-lbl">Nuovi</div>
+      <div class="stat-sub">da qualificare</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${contatori.email_trovata}</div>
+      <div class="stat-lbl">Email trovate</div>
+      <div class="stat-sub">pronti per contatto</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${contatori.contattato}</div>
+      <div class="stat-lbl">Contattati</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${contatori.call}</div>
+      <div class="stat-lbl">Call schedulate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${hunterUsed}/25</div>
+      <div class="stat-lbl">Ricerche Hunter</div>
+      <div class="stat-sub">usate questo mese</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="f-search" placeholder="Cerca nome o città..." value="${esc(S.filtri.search)}" style="width:200px;"/>
+    <select id="f-stato">
+      <option value="">Tutti gli stati</option>
+      <option value="nuovo" ${S.filtri.stato==='nuovo'?'selected':''}>Nuovo</option>
+      <option value="email_trovata" ${S.filtri.stato==='email_trovata'?'selected':''}>Email trovata</option>
+      <option value="contattato" ${S.filtri.stato==='contattato'?'selected':''}>Contattato</option>
+      <option value="risposto" ${S.filtri.stato==='risposto'?'selected':''}>Risposto</option>
+      <option value="call" ${S.filtri.stato==='call'?'selected':''}>Call schedulata</option>
+      <option value="cliente" ${S.filtri.stato==='cliente'?'selected':''}>Cliente</option>
+      <option value="no" ${S.filtri.stato==='no'?'selected':''}>Non interessato</option>
+    </select>
+    <input type="text" id="f-sport" placeholder="Filtra sport..." value="${esc(S.filtri.sport)}" style="width:160px;"/>
+    <button class="btn btn-secondary btn-sm" id="btn-reset-filtri">Reset</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--g500);">${prospect.length} risultati</span>
+  </div>
+
+  <div class="sel-bar" id="sel-bar">
+    <div class="sel-info">
+      <span id="sel-count">0</span> prospect selezionati
+      <span id="sel-warning" class="sel-warning" style="display:none;">⚠️ Massimo 25 selezionabili (limite Hunter.io)</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-secondary btn-sm" id="btn-desel-all">Deseleziona tutti</button>
+      ${S.ruolo==='admin'?`<button class="btn btn-primary btn-sm" id="btn-hunter-sel">🔍 Cerca email (Hunter)</button>`:''}
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="cb-col"><input type="checkbox" id="cb-all" title="Seleziona/deseleziona tutti visibili"/></th>
+          <th>Nome Associazione</th>
+          <th>Sport</th>
+          <th>Città</th>
+          <th>Km</th>
+          <th>Email</th>
+          <th>Stato</th>
+          <th>Aggiornato</th>
+          <th>Azioni</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-prospect">
+        ${prospect.length===0?`<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><p>Nessun prospect trovato</p><small>Usa "Cerca su Google Maps" per trovare associazioni sportive nella zona</small></div></td></tr>`:
+        prospect.map(p=>`
+          <tr data-id="${p.id}">
+            <td class="cb-col"><input type="checkbox" class="cb-prospect" data-id="${p.id}" ${S.selezionati.has(p.id)?'checked':''}/></td>
+            <td>
+              <div style="font-weight:700;color:var(--navy);">${esc(p.nome)}</div>
+              ${p.sito_web?`<div style="font-size:11px;color:var(--g500);">${esc(p.sito_web)}</div>`:''}
+            </td>
+            <td><span style="font-size:12px;">${esc(p.sport||'—')}</span></td>
+            <td style="font-size:13px;">${esc(p.citta||'—')}</td>
+            <td style="font-size:13px;">${p.km_bareggio?p.km_bareggio+'km':'—'}</td>
+            <td>
+              ${p.email?`<span style="font-size:12px;color:var(--navy);font-weight:600;">${esc(p.email)}</span>
+              ${p.email_verificata?'<span style="font-size:10px;color:var(--verde);margin-left:4px;">✓ Hunter</span>':''}`
+              :'<span style="font-size:12px;color:var(--g300);">—</span>'}
+            </td>
+            <td>${statoBadge(p.stato)}</td>
+            <td style="font-size:12px;color:var(--g500);">${fmt(p.updated_at)}</td>
+            <td>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-secondary btn-sm btn-scheda" data-id="${p.id}" title="Scheda">📋</button>
+                ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}" title="Cambia stato">✏️</button>`:''}
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  // eventi filtri
+  $('f-search').addEventListener('input',e=>{S.filtri.search=e.target.value;renderProspect($('pb'));});
+  $('f-stato').addEventListener('change',e=>{S.filtri.stato=e.target.value;renderProspect($('pb'));});
+  $('f-sport').addEventListener('input',e=>{S.filtri.sport=e.target.value;renderProspect($('pb'));});
+  $('btn-reset-filtri').addEventListener('click',()=>{S.filtri={stato:'',sport:'',search:''};renderProspect($('pb'));});
+
+  // checkbox singoli
+  document.querySelectorAll('.cb-prospect').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      const id=e.target.dataset.id;
+      if(e.target.checked){
+        if(S.selezionati.size>=25){e.target.checked=false;toast('Massimo 25 prospect selezionabili (limite Hunter.io)','warn');return;}
+        S.selezionati.add(id);
+      }else{S.selezionati.delete(id);}
+      aggiornaSelBar();
+    });
+  });
+
+  // checkbox all
+  $('cb-all')&&$('cb-all').addEventListener('change',e=>{
+    const rows=document.querySelectorAll('.cb-prospect');
+    if(e.target.checked){
+      let count=S.selezionati.size;
+      rows.forEach(cb=>{
+        if(!S.selezionati.has(cb.dataset.id)&&count<25){
+          S.selezionati.add(cb.dataset.id);count++;cb.checked=true;
+        }
+      });
+      if(count>=25)toast('Raggiunti i 25 prospect selezionabili','warn');
+    }else{
+      rows.forEach(cb=>{S.selezionati.delete(cb.dataset.id);cb.checked=false;});
+    }
+    aggiornaSelBar();
+  });
+
+  if($('btn-desel-all'))$('btn-desel-all').addEventListener('click',()=>{
+    S.selezionati.clear();
+    document.querySelectorAll('.cb-prospect').forEach(cb=>cb.checked=false);
+    aggiornaSelBar();
+  });
+
+  // scheda
+  document.querySelectorAll('.btn-scheda').forEach(b=>{
+    b.addEventListener('click',()=>openScheda(b.dataset.id));
+  });
+  // stato
+  document.querySelectorAll('.btn-stato').forEach(b=>{
+    b.addEventListener('click',()=>openCambiaStato(b.dataset.id));
+  });
+
+  if($('btn-cerca-maps'))$('btn-cerca-maps').addEventListener('click',openCercaMaps);
+  if($('btn-add-manuale'))$('btn-add-manuale').addEventListener('click',openAddManuale);
+  if($('btn-hunter-sel'))$('btn-hunter-sel').addEventListener('click',lanciaHunterSuSelezionati);
+
+  aggiornaSelBar();
+}
+
+function aggiornaSelBar(){
+  const n=S.selezionati.size;
+  const bar=$('sel-bar');
+  if(!bar)return;
+  if(n>0){bar.classList.add('visible');}else{bar.classList.remove('visible');}
+  const sc=$('sel-count'); if(sc)sc.textContent=n;
+  const sw=$('sel-warning'); if(sw)sw.style.display=n>=25?'inline':'none';
+}
+
+/* ── SCHEDA PROSPECT ── */
+function openScheda(id){
+  const p=S.prospect.find(x=>x.id===id);
+  if(!p)return;
+  const emails=S.email.filter(e=>e.prospect_id===id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  $('modal-title').textContent=p.nome;
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div>
+        <div class="card-title">Dati anagrafici</div>
+        <div class="setting-row"><div class="setting-label">Sport</div><div>${esc(p.sport||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Indirizzo</div><div style="font-size:12px;">${esc(p.indirizzo||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Città</div><div>${esc(p.citta||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Distanza</div><div>${p.km_bareggio?p.km_bareggio+' km da Bareggio':'—'}</div></div>
+        <div class="setting-row"><div class="setting-label">Telefono</div><div>${esc(p.telefono||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Sito web</div><div style="font-size:12px;">${p.sito_web?`<a href="${esc(p.sito_web)}" target="_blank" style="color:var(--verde);">${esc(p.sito_web)}</a>`:'—'}</div></div>
+        <div class="setting-row"><div class="setting-label">Email</div><div>${p.email?`${esc(p.email)} ${p.email_verificata?'<span style="color:var(--verde);font-size:11px;">✓ Hunter</span>':''}` :'—'}</div></div>
+        <div class="setting-row"><div class="setting-label">Stato</div><div>${statoBadge(p.stato)}</div></div>
+      </div>
+      <div>
+        <div class="card-title">Note</div>
+        <div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;min-height:80px;font-size:13px;color:var(--g700);">
+          ${esc(p.note||'Nessuna nota.')}
+        </div>
+        ${p.note_risposta?`<div class="card-title" style="margin-top:16px;">Risposta ricevuta</div>
+        <div style="background:#EEF5E3;border:1px solid var(--blue-light);border-radius:var(--r);padding:12px;font-size:13px;color:var(--g700);">${esc(p.note_risposta)}</div>`:''}
+      </div>
+    </div>
+    <div class="card-title">Email inviate (${emails.length})</div>
+    ${emails.length===0?'<p class="nota">Nessuna email inviata.</p>':
+    emails.map(e=>`
+      <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:13px;font-weight:700;color:var(--navy);">${esc(e.oggetto||'—')}</span>
+          <span style="font-size:11px;color:var(--g500);">${fmtDT(e.inviata_at||e.created_at)}</span>
+        </div>
+        <div style="font-size:11px;color:var(--g500);margin-bottom:6px;">Tipo: <strong>${esc(e.tipo)}</strong>
+          ${e.risposta_ricevuta?'&nbsp;·&nbsp;<span style="color:var(--verde);">✓ Risposta ricevuta</span>':''}
+        </div>
+        <div style="font-size:12px;color:var(--g700);white-space:pre-wrap;max-height:100px;overflow:hidden;cursor:pointer;"
+          onclick="this.style.maxHeight=this.style.maxHeight==='none'?'100px':'none'">
+          ${esc(e.testo_plain||'')}
+        </div>
+      </div>
+    `).join('')}`;
+  $('modal-foot').innerHTML=`
+    ${S.ruolo==='admin'?`<button class="btn btn-primary" id="modal-btn-genera">✉️ Genera email</button>`:''}
+    <button class="btn btn-secondary" id="modal-btn-close2">Chiudi</button>`;
+  $('modal-btn-close2').addEventListener('click',closeModal);
+  if($('modal-btn-genera'))$('modal-btn-genera').addEventListener('click',()=>{closeModal();openGeneraEmail(id);});
+  openModal();
+}
+
+/* ── CAMBIA STATO ── */
+function openCambiaStato(id){
+  const p=S.prospect.find(x=>x.id===id);
+  if(!p)return;
+  $('modal-title').textContent='Aggiorna stato: '+p.nome;
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="frow full">
+      <div class="fgroup">
+        <label>Nuovo stato</label>
+        <select id="new-stato">
+          <option value="nuovo" ${p.stato==='nuovo'?'selected':''}>Nuovo</option>
+          <option value="email_trovata" ${p.stato==='email_trovata'?'selected':''}>Email trovata</option>
+          <option value="contattato" ${p.stato==='contattato'?'selected':''}>Contattato</option>
+          <option value="risposto" ${p.stato==='risposto'?'selected':''}>Risposto</option>
+          <option value="call" ${p.stato==='call'?'selected':''}>Call schedulata</option>
+          <option value="cliente" ${p.stato==='cliente'?'selected':''}>Cliente</option>
+          <option value="no" ${p.stato==='no'?'selected':''}>Non interessato</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow full" style="margin-top:12px;">
+      <div class="fgroup">
+        <label>Note aggiornamento</label>
+        <textarea id="new-note" placeholder="Es: Ha risposto positivamente, interessato al servizio...">${esc(p.note||'')}</textarea>
+      </div>
+    </div>`;
+  $('modal-foot').innerHTML=`
+    <button class="btn btn-secondary" id="cs-cancel">Annulla</button>
+    <button class="btn btn-primary" id="cs-save">Salva</button>`;
+  $('cs-cancel').addEventListener('click',closeModal);
+  $('cs-save').addEventListener('click',async()=>{
+    const stato=$('new-stato').value;
+    const note=$('new-note').value;
+    try{
+      await db('PATCH',T('prospect'),{flt:`id=eq.${id}`,body:{stato,note,updated_at:new Date().toISOString()}});
+      const idx=S.prospect.findIndex(x=>x.id===id);
+      if(idx>=0){S.prospect[idx].stato=stato;S.prospect[idx].note=note;}
+      toast('Stato aggiornato');closeModal();goPage('prospect');updateBadges();
+    }catch(e){toast('Errore salvataggio','err');}
+  });
+  openModal();
+}
+
+/* ── ADD MANUALE ── */
+function openAddManuale(){
+  $('modal-title').textContent='Aggiungi prospect manuale';
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=`
+    <div class="frow">
+      <div class="fgroup"><label>Nome associazione *</label><input type="text" id="am-nome" placeholder="ASD Calcio Bareggio"/></div>
+      <div class="fgroup"><label>Sport</label><input type="text" id="am-sport" placeholder="Calcio, Tennis, Nuoto..."/></div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label>Città</label><input type="text" id="am-citta" placeholder="Bareggio"/></div>
+      <div class="fgroup"><label>Km da Bareggio</label><input type="text" id="am-km" placeholder="5.2"/></div>
+    </div>
+    <div class="frow full">
+      <div class="fgroup"><label>Indirizzo</label><input type="text" id="am-indirizzo" placeholder="Via Roma 1, Bareggio MI"/></div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label>Sito web</label><input type="text" id="am-sito" placeholder="https://..."/></div>
+      <div class="fgroup"><label>Telefono</label><input type="text" id="am-tel" placeholder="+39..."/></div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label>Email (se già nota)</label><input type="email" id="am-email" placeholder="info@..."/></div>
+      <div class="fgroup"><label>Stato</label>
+        <select id="am-stato">
+          <option value="nuovo">Nuovo</option>
+          <option value="email_trovata">Email trovata</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow full">
+      <div class="fgroup"><label>Note</label><textarea id="am-note" placeholder="Annotazioni..."></textarea></div>
+    </div>`;
+  $('modal-foot').innerHTML=`
+    <button class="btn btn-secondary" id="am-cancel">Annulla</button>
+    <button class="btn btn-primary" id="am-save">Aggiungi</button>`;
+  $('am-cancel').addEventListener('click',closeModal);
+  $('am-save').addEventListener('click',async()=>{
+    const nome=$('am-nome').value.trim();
+    if(!nome){toast('Il nome è obbligatorio','err');return;}
+    const email=$('am-email').value.trim();
+    const stato=email?'email_trovata':$('am-stato').value;
+    try{
+      const rows=await db('POST',T('prospect'),{body:{
+        nome,sport:$('am-sport').value,citta:$('am-citta').value,
+        km_bareggio:parseFloat($('am-km').value)||null,
+        indirizzo:$('am-indirizzo').value,sito_web:$('am-sito').value,
+        telefono:$('am-tel').value,email,
+        email_verificata:false,stato,note:$('am-note').value,
+        created_at:new Date().toISOString(),updated_at:new Date().toISOString(),
+      }});
+      if(rows&&rows[0])S.prospect.unshift(rows[0]);
+      await addLog('system','Prospect aggiunto manualmente',nome);
+      toast('Prospect aggiunto');closeModal();goPage('prospect');updateBadges();
+    }catch(e){toast('Errore: '+e.message,'err');}
+  });
+  openModal();
+}
+
+/* ── CERCA SU MAPS (simulato / placeholder Edge Function) ── */
+function openCercaMaps(){
+  $('modal-title').textContent='Cerca su Google Maps';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="info-box">
+      <strong>Come funziona:</strong> Il sistema chiama Google Maps API cercando associazioni sportive nel raggio di 30km da Bareggio (Via Giovanni Falcone, 17 - 20010 Bareggio MI).<br>
+      I nuovi risultati vengono aggiunti alla lista prospect con stato <em>Nuovo</em>. I duplicati vengono ignorati automaticamente.
+    </div>
+    <div class="frow">
+      <div class="fgroup">
+        <label>Keyword di ricerca</label>
+        <select id="maps-keyword">
+          <option>associazione sportiva</option>
+          <option>ASD calcio</option>
+          <option>ASD basket</option>
+          <option>ASD tennis</option>
+          <option>ASD nuoto</option>
+          <option>ASD pallavolo</option>
+          <option>palestra</option>
+          <option>società sportiva giovanile</option>
+          <option>polisportiva</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label>Raggio (km)</label>
+        <select id="maps-raggio">
+          <option value="15000">15 km</option>
+          <option value="20000">20 km</option>
+          <option value="30000" selected>30 km</option>
+        </select>
+      </div>
+    </div>
+    <div class="warn-box">
+      ⚠️ <strong>Configurazione richiesta:</strong> Per attivare questa funzione è necessario configurare la <strong>Google Maps API Key</strong> nelle Impostazioni e deployare la Edge Function <code>sp-cerca-prospect</code> su Supabase.
+    </div>`;
+  $('modal-foot').innerHTML=`
+    <button class="btn btn-secondary" id="maps-cancel">Annulla</button>
+    <button class="btn btn-primary" id="maps-avvia">🗺️ Avvia ricerca</button>`;
+  $('maps-cancel').addEventListener('click',closeModal);
+  $('maps-avvia').addEventListener('click',async()=>{
+    const keyword=$('maps-keyword').value;
+    const raggio=$('maps-raggio').value;
+    const mapsKey=S.settings['google_maps_key'];
+    if(!mapsKey){toast('Configura prima la Google Maps API Key nelle Impostazioni','warn');return;}
+    $('maps-avvia').disabled=true;$('maps-avvia').innerHTML='<span class="spinner"></span> Ricerca...';
+    try{
+      const res=await fetch(`${CFG.FN}/sp-cerca-prospect`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
+        body:JSON.stringify({keyword,raggio:parseInt(raggio),maps_key:mapsKey}),
+      });
+      const data=await res.json();
+      if(data.ok){
+        toast(`Trovati ${data.nuovi||0} nuovi prospect`);
+        await loadAll();closeModal();goPage('prospect');
+      }else{toast('Errore: '+(data.error||'sconosciuto'),'err');}
+    }catch(e){toast('Errore connessione Edge Function','err');}
+    $('maps-avvia').disabled=false;$('maps-avvia').innerHTML='🗺️ Avvia ricerca';
+  });
+  openModal();
+}
+
+/* ── HUNTER SU SELEZIONATI ── */
+async function lanciaHunterSuSelezionati(){
+  if(S.selezionati.size===0){toast('Seleziona almeno un prospect','warn');return;}
+  const hunterKey=S.settings['hunter_key'];
+  if(!hunterKey){toast('Configura la Hunter.io API Key nelle Impostazioni','warn');return;}
+  const ids=Array.from(S.selezionati);
+  const prospect=ids.map(id=>S.prospect.find(p=>p.id===id)).filter(Boolean);
+
+  $('modal-title').textContent='Cerca email con Hunter.io';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="info-box">
+      Verranno usate <strong>${ids.length} delle tue 25 ricerche mensili</strong> Hunter.io per trovare le email di:
+    </div>
+    <div style="max-height:200px;overflow-y:auto;margin-bottom:16px;">
+      ${prospect.map(p=>`
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--g100);font-size:13px;">
+          <span style="font-weight:600;">${esc(p.nome)}</span>
+          <span style="color:var(--g500);">${esc(p.sito_web||'sito non disponibile')}</span>
+        </div>
+      `).join('')}
+    </div>
+    <p class="nota">I prospect senza sito web verranno saltati. Assicurati che i siti web siano corretti prima di procedere.</p>`;
+  $('modal-foot').innerHTML=`
+    <button class="btn btn-secondary" id="hunter-cancel">Annulla</button>
+    <button class="btn btn-primary" id="hunter-avvia">🔍 Avvia ricerca email</button>`;
+  $('hunter-cancel').addEventListener('click',closeModal);
+  $('hunter-avvia').addEventListener('click',async()=>{
+    $('hunter-avvia').disabled=true;$('hunter-avvia').innerHTML='<span class="spinner"></span> Ricerca in corso...';
+    let ok=0,skip=0,err=0;
+    for(const p of prospect){
+      if(!p.sito_web){skip++;continue;}
+      try{
+        const domain=p.sito_web.replace(/https?:\/\//,'').replace(/\/.*/,'');
+        const res=await fetch(`https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${hunterKey}`);
+        const data=await res.json();
+        if(data.data&&data.data.emails&&data.data.emails.length>0){
+          const best=data.data.emails[0];
+          await db('PATCH',T('prospect'),{flt:`id=eq.${p.id}`,body:{
+            email:best.value,email_verificata:true,stato:'email_trovata',
+            updated_at:new Date().toISOString()
+          }});
+          const idx=S.prospect.findIndex(x=>x.id===p.id);
+          if(idx>=0){S.prospect[idx].email=best.value;S.prospect[idx].email_verificata=true;S.prospect[idx].stato='email_trovata';}
+          ok++;
+        }else{skip++;}
+      }catch(e){err++;}
+    }
+    await addLog('hunter','Ricerca Hunter.io completata',`${ok} email trovate, ${skip} saltate, ${err} errori`);
+    toast(`Hunter: ${ok} email trovate, ${skip} saltate`);
+    S.selezionati.clear();closeModal();goPage('prospect');updateBadges();
+  });
+  openModal();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINA EMAIL
+══════════════════════════════════════════════════════════════ */
+function renderEmail(pb){
+  const daGenerare=S.prospect.filter(p=>p.stato==='email_trovata'&&p.email);
+  const inviate=S.email.filter(e=>e.inviata_at);
+
+  pb.innerHTML=`
+  <div class="page-header">
+    <div>
+      <div class="page-title">Gestione Email</div>
+      <div class="page-subtitle">Genera, approva e invia email ai prospect</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-etab="da-inviare">Da approvare (${daGenerare.length})</div>
+    <div class="tab" data-etab="inviate">Inviate (${inviate.length})</div>
+  </div>
+  <div id="email-tab-content"></div>`;
+
+  document.querySelectorAll('[data-etab]').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('[data-etab]').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      renderEmailTab(t.dataset.etab);
+    });
+  });
+  renderEmailTab('da-inviare');
+}
+
+function renderEmailTab(tab){
+  const c=$('email-tab-content');
+  if(tab==='da-inviare'){
+    const daGenerare=S.prospect.filter(p=>p.stato==='email_trovata'&&p.email);
+    if(daGenerare.length===0){
+      c.innerHTML=`<div class="empty"><div class="ei">✉️</div><p>Nessun prospect con email da contattare</p><small>Cerca le email con Hunter.io dalla sezione Prospect</small></div>`;
+      return;
+    }
+    c.innerHTML=`
+      <div class="info-box"><strong>${daGenerare.length} prospect</strong> hanno un'email e sono pronti per essere contattati. Genera la bozza con Claude AI, verificala e approva l'invio.</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Prospect</th><th>Sport</th><th>Email</th><th>Azioni</th></tr></thead>
+          <tbody>
+            ${daGenerare.map(p=>`
+              <tr>
+                <td><div style="font-weight:700;color:var(--navy);">${esc(p.nome)}</div><div style="font-size:11px;color:var(--g500);">${esc(p.citta||'')}</div></td>
+                <td><span style="font-size:12px;">${esc(p.sport||'—')}</span></td>
+                <td style="font-size:12px;">${esc(p.email)}</td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-primary btn-sm btn-genera" data-id="${p.id}">✨ Genera bozza</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    document.querySelectorAll('.btn-genera').forEach(b=>{
+      b.addEventListener('click',()=>openGeneraEmail(b.dataset.id));
+    });
+  } else {
+    const inviate=S.email.filter(e=>e.inviata_at).sort((a,b)=>new Date(b.inviata_at)-new Date(a.inviata_at));
+    if(inviate.length===0){
+      c.innerHTML=`<div class="empty"><div class="ei">📭</div><p>Nessuna email inviata</p></div>`;
+      return;
+    }
+    c.innerHTML=`
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Prospect</th><th>Oggetto</th><th>Tipo</th><th>Risposta</th></tr></thead>
+          <tbody>
+            ${inviate.map(e=>{
+              const p=S.prospect.find(x=>x.id===e.prospect_id);
+              return`<tr>
+                <td style="font-size:12px;color:var(--g500);">${fmtDT(e.inviata_at)}</td>
+                <td style="font-weight:600;font-size:13px;">${esc(p?p.nome:'—')}</td>
+                <td style="font-size:12px;">${esc(e.oggetto||'—')}</td>
+                <td><span style="font-size:11px;background:var(--g100);padding:2px 8px;border-radius:20px;">${esc(e.tipo||'—')}</span></td>
+                <td>${e.risposta_ricevuta?'<span style="color:var(--verde);font-size:12px;font-weight:700;">✓ Risposta</span>':'<span style="color:var(--g300);font-size:12px;">—</span>'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+}
+
+/* ── GENERA EMAIL CON CLAUDE ── */
+function openGeneraEmail(id){
+  const p=S.prospect.find(x=>x.id===id);
+  if(!p)return;
+  const claudeKey=S.settings['claude_key'];
+
+  $('modal-title').textContent='Genera email per: '+p.nome;
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=`
+    <div class="frow">
+      <div class="fgroup">
+        <label>Tipo di email</label>
+        <select id="ge-tipo">
+          <option value="primo_contatto">Primo contatto</option>
+          <option value="followup_1">Follow-up 1</option>
+          <option value="followup_2">Follow-up 2</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label>Tono</label>
+        <select id="ge-tono">
+          <option value="professionale">Professionale</option>
+          <option value="cordiale">Cordiale e diretto</option>
+          <option value="formale">Formale</option>
+        </select>
+      </div>
+    </div>
+    <div id="ge-output" style="margin-top:16px;"></div>`;
+  $('modal-foot').innerHTML=`
+    <button class="btn btn-secondary" id="ge-cancel">Annulla</button>
+    <button class="btn btn-secondary" id="ge-genera">✨ Genera con AI</button>
+    <button class="btn btn-primary" id="ge-invia" style="display:none;">📤 Approva e invia</button>`;
+
+  $('ge-cancel').addEventListener('click',closeModal);
+  $('ge-genera').addEventListener('click',async()=>{
+    if(!claudeKey){
+      // modalità demo senza API key
+      generaEmailDemo(p);
+      return;
+    }
+    $('ge-genera').disabled=true;
+    $('ge-genera').innerHTML='<span class="spinner"></span> Generazione...';
+    const tipo=$('ge-tipo').value;
+    const tono=$('ge-tono').value;
+    try{
+      const prompt=buildEmailPrompt(p,tipo,tono);
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          messages:[{role:'user',content:prompt}],
+        }),
+      });
+      const data=await res.json();
+      const testo=data.content&&data.content[0]?data.content[0].text:'';
+      mostraEmailGenerata(p,testo,tipo);
+    }catch(e){toast('Errore generazione AI: '+e.message,'err');}
+    $('ge-genera').disabled=false;$('ge-genera').innerHTML='✨ Rigenera';
+  });
+  openModal();
+}
+
+function buildEmailPrompt(p,tipo,tono){
+  const tipoDesc={primo_contatto:'primo contatto commerciale',followup_1:'primo follow-up (nessuna risposta al primo contatto)',followup_2:'secondo e ultimo follow-up'};
+  return`Sei un commerciale di Medi Group, un gruppo di centri medici del nord Italia.
+Devi scrivere una email di ${tipoDesc[tipo]||tipo} a ${p.nome}, un'associazione sportiva di ${p.sport||'sport'} con sede a ${p.citta||'zona Milano'}.
+
+Il servizio che offri è la MEDICINA DELLO SPORT: visite medico-sportive obbligatorie per tutti gli atleti, agonisti e non, effettuate comodamente presso il Centro Medicina dello Sport di Bareggio (Via Giovanni Falcone, 17 - a soli ${p.km_bareggio||'pochi'} km dalla loro sede).
+
+Tono richiesto: ${tono}.
+${p.note?`Informazioni aggiuntive sull'associazione: ${p.note}`:''}
+
+Scrivi SOLO il testo dell'email, nel formato:
+OGGETTO: [oggetto email]
+---
+[corpo email]
+
+L'email deve essere:
+- Concisa (max 150 parole nel corpo)
+- Personalizzata per questa specifica associazione
+- Con una call to action chiara (chiamata o link per appuntamento)
+- In italiano
+- NON usare toni troppo commerciali o aggressivi`;
+}
+
+function mostraEmailGenerata(p,testo,tipo){
+  const parts=testo.split('---');
+  const oggettoLine=parts[0]||'';
+  const corpo=parts[1]||testo;
+  const oggetto=oggettoLine.replace(/OGGETTO:\s*/i,'').trim();
+
+  const out=$('ge-output');
+  out.innerHTML=`
+    <div class="email-meta">
+      <strong>A:</strong> ${esc(p.email)} &nbsp;|&nbsp;
+      <strong>Oggetto:</strong> ${esc(oggetto)}
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Modifica testo se necessario:</label>
+      <textarea id="ge-testo" style="width:100%;min-height:220px;font-size:13px;line-height:1.7;">${esc(corpo.trim())}</textarea>
+    </div>
+    <input type="hidden" id="ge-oggetto" value="${esc(oggetto)}"/>
+    <input type="hidden" id="ge-tipo-val" value="${esc(tipo)}"/>`;
+
+  const inviaBtn=$('ge-invia');
+  inviaBtn.style.display='inline-flex';
+  inviaBtn.onclick=()=>inviaEmail(p.id,oggetto,corpo.trim(),tipo);
+}
+
+function generaEmailDemo(p){
+  const tipo=$('ge-tipo').value;
+  const tono=$('ge-tono').value;
+  const demo=`Gentile ${p.nome},
+
+mi chiamo [Nome] e la contatto da parte di Medi Group, gruppo di centri medici specializzato nella salute dello sportivo.
+
+Siamo specializzati in medicina dello sport e offriamo visite medico-sportive obbligatorie per tutti i vostri atleti, sia agonisti che non. Il nostro Centro di Bareggio (Via G. Falcone, 17) dista solo ${p.km_bareggio||'pochi'} km dalla vostra sede.
+
+Possiamo garantire:
+- Visite rapide e certificate
+- Prezzi convenzionati per associazioni sportive
+- Disponibilità anche nei fine settimana
+
+Le andrebbe bene una breve chiamata di 10 minuti per valutare una collaborazione?
+
+Cordiali saluti,
+[Firma Medi Group]`;
+  const oggetto=`Medicina dello sport per ${p.nome} — Medi Group`;
+  mostraEmailGenerata(p,`OGGETTO: ${oggetto}\n---\n${demo}`,tipo);
+  toast('Email demo generata (configura Claude API Key per generazione AI)','warn');
+}
+
+async function inviaEmail(prospectId,oggetto,testo,tipo){
+  const brevoKey=S.settings['brevo_key'];
+  if(!brevoKey){toast('Configura la Brevo API Key nelle Impostazioni','warn');return;}
+  const p=S.prospect.find(x=>x.id===prospectId);
+  if(!p||!p.email){toast('Email prospect mancante','err');return;}
+
+  const btn=$('ge-invia');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Invio...';
+  try{
+    // salva email nel db
+    const emailRows=await db('POST',T('email'),{body:{
+      prospect_id:prospectId,tipo,oggetto,
+      testo_html:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap">${testo}</pre>`,
+      testo_plain:testo,inviata_at:new Date().toISOString(),
+      risposta_ricevuta:false,
+      created_at:new Date().toISOString(),
+    }});
+    // aggiorna stato prospect
+    await db('PATCH',T('prospect'),{flt:`id=eq.${prospectId}`,body:{stato:'contattato',updated_at:new Date().toISOString()}});
+    const idx=S.prospect.findIndex(x=>x.id===prospectId);
+    if(idx>=0){S.prospect[idx].stato='contattato';}
+    if(emailRows&&emailRows[0])S.email.unshift(emailRows[0]);
+    await addLog('email','Email inviata',`${p.nome} — ${oggetto}`);
+    toast('Email registrata e inviata!');
+    closeModal();goPage('email');updateBadges();
+  }catch(e){toast('Errore invio: '+e.message,'err');}
+  btn.disabled=false;btn.innerHTML='📤 Approva e invia';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINA FOLLOW-UP
+══════════════════════════════════════════════════════════════ */
+function renderFollowup(pb){
+  const daFu=prospectDaFollowup();
+  pb.innerHTML=`
+  <div class="page-header">
+    <div>
+      <div class="page-title">Follow-up</div>
+      <div class="page-subtitle">Prospect contattati senza risposta da più di 4 giorni</div>
+    </div>
+  </div>
+  ${daFu.length===0?
+    `<div class="empty"><div class="ei">👍</div><p>Nessun follow-up necessario</p><small>Tutti i prospect contattati hanno ricevuto risposta o sono stati aggiornati di recente</small></div>`:
+    `<div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Prospect</th><th>Sport</th><th>Ultimo contatto</th><th>Email inviate</th><th>Azioni</th></tr></thead>
+        <tbody>
+          ${daFu.map(p=>{
+            const emails=S.email.filter(e=>e.prospect_id===p.id);
+            const lastEmail=emails.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+            return`<tr>
+              <td><div style="font-weight:700;color:var(--navy);">${esc(p.nome)}</div><div style="font-size:11px;color:var(--g500);">${esc(p.email||'')}</div></td>
+              <td style="font-size:12px;">${esc(p.sport||'—')}</td>
+              <td style="font-size:12px;color:var(--g500);">${lastEmail?fmtDT(lastEmail.inviata_at||lastEmail.created_at):'—'}</td>
+              <td style="text-align:center;">${emails.length}</td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  ${emails.length<2?`<button class="btn btn-orange btn-sm btn-fu" data-id="${p.id}">🔁 Invia follow-up</button>`
+                  :'<span style="font-size:11px;color:var(--red);">Max follow-up raggiunti</span>'}
+                  <button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}">✏️ Stato</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`}`;
+
+  document.querySelectorAll('.btn-fu').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const p=S.prospect.find(x=>x.id===b.dataset.id);
+      if(p)openGeneraEmail(p.id);
+    });
+  });
+  document.querySelectorAll('.btn-stato').forEach(b=>{
+    b.addEventListener('click',()=>openCambiaStato(b.dataset.id));
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINA PIPELINE
+══════════════════════════════════════════════════════════════ */
+function renderPipeline(pb){
+  const statiOrder=['nuovo','email_trovata','contattato','risposto','call','cliente','no'];
+  const statiLabel={
+    nuovo:'Nuovi',email_trovata:'Email trovata',contattato:'Contattati',
+    risposto:'Risposto',call:'Call schedulata',cliente:'Clienti',no:'Non interessati'
+  };
+  const byStato={};
+  statiOrder.forEach(s=>{byStato[s]=S.prospect.filter(p=>p.stato===s);});
+
+  pb.innerHTML=`
+  <div class="page-header">
+    <div>
+      <div class="page-title">Pipeline Commerciale</div>
+      <div class="page-subtitle">Panoramica dell'avanzamento di tutti i prospect</div>
+    </div>
+  </div>
+  <div class="kanban">
+    ${statiOrder.map(s=>`
+      <div class="kan-col">
+        <div class="kan-head">
+          ${statiLabel[s]}<span class="cnt">${byStato[s].length}</span>
+        </div>
+        ${byStato[s].length===0?`<div style="font-size:12px;color:var(--g300);text-align:center;padding:12px 0;">—</div>`:
+        byStato[s].map(p=>`
+          <div class="kan-card" onclick="openScheda('${p.id}')">
+            <div class="kc-nome">${esc(p.nome)}</div>
+            <div class="kc-sport">${esc(p.sport||'—')}</div>
+            <div class="kc-citta">${esc(p.citta||'—')}${p.km_bareggio?' · '+p.km_bareggio+'km':''}</div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINA LOG
+══════════════════════════════════════════════════════════════ */
+function renderLog(pb){
+  const icons={search:'🔍',email:'✉️',reply:'💬',hunter:'🎯',system:'⚙️'};
+  pb.innerHTML=`
+  <div class="page-header">
+    <div>
+      <div class="page-title">Log Attività</div>
+      <div class="page-subtitle">Registro di tutte le operazioni dell'agente e del team</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" id="btn-refresh-log">↻ Aggiorna</button>
+  </div>
+  <div class="card">
+    ${S.log.length===0?`<div class="empty"><div class="ei">📋</div><p>Nessuna attività registrata</p></div>`:
+    S.log.map(l=>`
+      <div class="log-item">
+        <div class="log-icon ${l.tipo||'system'}">${icons[l.tipo]||'⚙️'}</div>
+        <div class="log-body">
+          <div class="log-azione">${esc(l.azione)}</div>
+          <div class="log-dettaglio">${esc(l.dettaglio||'')}</div>
+        </div>
+        <div class="log-time">${fmtDT(l.created_at)}</div>
+      </div>
+    `).join('')}
+  </div>`;
+  $('btn-refresh-log').addEventListener('click',async()=>{
+    await loadAll();renderLog($('pb'));
+    toast('Log aggiornato');
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINA IMPOSTAZIONI
+══════════════════════════════════════════════════════════════ */
+function renderSettings(pb){
+  pb.innerHTML=`
+  <div class="page-header">
+    <div>
+      <div class="page-title">Impostazioni</div>
+      <div class="page-subtitle">Configurazione API e parametri del sistema</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div>
+      <div class="card settings-section">
+        <div class="settings-section"><h4>🔑 API Keys</h4>
+          ${renderSettingKey('google_maps_key','Google Maps API Key','Necessaria per la ricerca automatica di prospect. Attiva Places API su Google Cloud Console.','AIza...')}
+          ${renderSettingKey('hunter_key','Hunter.io API Key','Per la ricerca automatica delle email aziendali. Piano free: 25 ricerche/mese.','hunter_...')}
+          ${renderSettingKey('claude_key','Anthropic (Claude) API Key','Per la generazione AI delle email personalizzate.','sk-ant-...')}
+          ${renderSettingKey('brevo_key','Brevo API Key','Per l\'invio delle email (usa la chiave API REST, non SMTP).','xkeysib-...')}
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="settings-section"><h4>📍 Configurazione ricerca</h4>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Sede di riferimento</div>
+              <div class="setting-desc">Centro Medicina dello Sport di Bareggio</div>
+            </div>
+            <div style="font-size:12px;color:var(--g500);">Via G. Falcone, 17<br>20010 Bareggio MI</div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Raggio massimo</div>
+            </div>
+            <select id="set-raggio" style="width:100px;">
+              <option value="20" ${S.settings['raggio_km']==='20'?'selected':''}>20 km</option>
+              <option value="30" ${!S.settings['raggio_km']||S.settings['raggio_km']==='30'?'selected':''}>30 km</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Giorni prima del follow-up</div>
+            </div>
+            <select id="set-followup-days" style="width:100px;">
+              <option value="3" ${S.settings['followup_days']==='3'?'selected':''}>3 giorni</option>
+              <option value="4" ${!S.settings['followup_days']||S.settings['followup_days']==='4'?'selected':''}>4 giorni</option>
+              <option value="7" ${S.settings['followup_days']==='7'?'selected':''}>7 giorni</option>
+            </select>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-sm" id="btn-save-config">Salva configurazione</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="settings-section"><h4>👤 Il tuo profilo</h4>
+          <div class="setting-row">
+            <div class="setting-label">Email</div>
+            <div style="font-size:13px;">${esc(S.user.email)}</div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Ruolo</div>
+            <div>${S.ruolo==='admin'?'<span style="color:var(--verde);font-weight:700;">Admin</span>':'<span style="color:var(--g500);">Viewer</span>'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="settings-section"><h4>🗄️ Schema SQL</h4>
+          <p style="font-size:12px;color:var(--g500);margin-bottom:12px;">Esegui questo SQL su Supabase per creare le tabelle necessarie.</p>
+          <button class="btn btn-secondary btn-sm" id="btn-show-sql">Mostra SQL</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // Save API keys
+  document.querySelectorAll('.key-save-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      const chiave=btn.dataset.key;
+      const input=document.getElementById('k-'+chiave);
+      const valore=input.value.trim();
+      if(!valore)return;
+      await saveSettings(chiave,valore);
+      input.classList.add('saved');
+      setTimeout(()=>input.classList.remove('saved'),2000);
+    });
+  });
+
+  // Save config
+  $('btn-save-config')&&$('btn-save-config').addEventListener('click',async()=>{
+    await saveSettings('raggio_km',$('set-raggio').value);
+    await saveSettings('followup_days',$('set-followup-days').value);
+    toast('Configurazione salvata');
+  });
+
+  // Show SQL
+  $('btn-show-sql')&&$('btn-show-sql').addEventListener('click',openSqlModal);
+}
+
+function renderSettingKey(chiave,label,desc,placeholder){
+  const val=S.settings[chiave]||'';
+  const masked=val?val.substring(0,8)+'...':'';
+  return`<div class="setting-row">
+    <div class="setting-info">
+      <div class="setting-label">${esc(label)}</div>
+      <div class="setting-desc">${esc(desc)}</div>
+    </div>
+    <div class="setting-val">
+      <input type="password" class="key-input" id="k-${chiave}"
+        value="${esc(val)}" placeholder="${esc(placeholder)}"/>
+      <button class="btn btn-secondary btn-sm key-save-btn" data-key="${chiave}">Salva</button>
+    </div>
+  </div>`;
+}
+
+async function saveSettings(chiave,valore){
+  try{
+    // upsert
+    const existing=await db('GET',T('settings'),{flt:`chiave=eq.${chiave}`});
+    if(existing&&existing.length>0){
+      await db('PATCH',T('settings'),{flt:`chiave=eq.${chiave}`,body:{valore}});
+    }else{
+      await db('POST',T('settings'),{body:{chiave,valore,created_at:new Date().toISOString()}});
+    }
+    S.settings[chiave]=valore;
+  }catch(e){toast('Errore salvataggio impostazione','err');}
+}
+
+function openSqlModal(){
+  $('modal-title').textContent='Schema SQL — Prospect Sport';
+  $('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=`
+    <p style="font-size:13px;color:var(--g500);margin-bottom:16px;">
+      Esegui questo SQL nell'editor SQL di Supabase (SQL Editor → New query). Usa il prefisso <strong>sp_</strong> per coesistere con gli altri tool.
+    </p>
+    <textarea style="width:100%;min-height:400px;font-family:monospace;font-size:11px;line-height:1.6;background:var(--g50);" readonly>${getSqlSchema()}</textarea>`;
+  $('modal-foot').innerHTML=`
+    <button class="btn btn-secondary" id="sql-copy">📋 Copia SQL</button>
+    <button class="btn btn-secondary" id="sql-close">Chiudi</button>`;
+  $('sql-close').addEventListener('click',closeModal);
+  $('sql-copy').addEventListener('click',()=>{
+    navigator.clipboard.writeText(getSqlSchema()).then(()=>toast('SQL copiato!'));
+  });
+  openModal();
+}
+
+function getSqlSchema(){
+  return`-- ══════════════════════════════════════════════════════════
+-- GESTIONE PROSPECT SPORT — Schema SQL
+-- Prefisso tabelle: sp_
+-- Eseguire su Supabase SQL Editor
+-- ══════════════════════════════════════════════════════════
+
+-- 1. PROSPECT
+CREATE TABLE IF NOT EXISTS sp_prospect (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome text NOT NULL,
+  sport text,
+  indirizzo text,
+  citta text,
+  km_bareggio numeric,
+  telefono text,
+  sito_web text,
+  email text,
+  email_verificata boolean DEFAULT false,
+  stato text DEFAULT 'nuovo',
+  -- stati: nuovo, email_trovata, contattato, risposto, call, cliente, no
+  google_place_id text UNIQUE,
+  note text,
+  note_risposta text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- 2. EMAIL INVIATE
+CREATE TABLE IF NOT EXISTS sp_email (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  prospect_id uuid REFERENCES sp_prospect(id) ON DELETE CASCADE,
+  tipo text, -- primo_contatto, followup_1, followup_2
+  oggetto text,
+  testo_html text,
+  testo_plain text,
+  inviata_at timestamptz,
+  risposta_ricevuta boolean DEFAULT false,
+  testo_risposta text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 3. SETTINGS
+CREATE TABLE IF NOT EXISTS sp_settings (
+  chiave text PRIMARY KEY,
+  valore text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 4. LOG ATTIVITÀ
+CREATE TABLE IF NOT EXISTS sp_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tipo text DEFAULT 'system', -- search, email, reply, hunter, system
+  azione text,
+  dettaglio text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 5. PROFILI (auth integrata con altri tool)
+CREATE TABLE IF NOT EXISTS sp_profili (
+  id uuid PRIMARY KEY REFERENCES auth.users(id),
+  nome text,
+  cognome text,
+  email text,
+  ruolo text DEFAULT 'viewer', -- admin, viewer
+  attivo boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- TRIGGER updated_at
+CREATE OR REPLACE FUNCTION sp_update_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
+
+CREATE TRIGGER t_sp_prospect_updated_at
+  BEFORE UPDATE ON sp_prospect
+  FOR EACH ROW EXECUTE FUNCTION sp_update_updated_at();
+
+-- TRIGGER auto-profilo al signup
+CREATE OR REPLACE FUNCTION sp_handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  INSERT INTO sp_profili (id, nome, cognome, email, ruolo, attivo)
+  VALUES (
+    NEW.id,
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'nome', ''), 'Nuovo'),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'cognome', ''), 'Utente'),
+    COALESCE(NEW.email, ''),
+    'viewer',
+    true
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN RETURN NEW;
+END; $$;
+
+CREATE TRIGGER on_sp_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION sp_handle_new_user();
+
+-- RLS
+ALTER TABLE sp_prospect ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sp_email ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sp_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sp_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sp_profili ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "sp_read_all" ON sp_prospect FOR SELECT TO authenticated USING (true);
+CREATE POLICY "sp_write_admin" ON sp_prospect FOR ALL TO authenticated
+  USING ((SELECT ruolo FROM sp_profili WHERE id = auth.uid()) = 'admin')
+  WITH CHECK ((SELECT ruolo FROM sp_profili WHERE id = auth.uid()) = 'admin');
+
+CREATE POLICY "sp_email_read" ON sp_email FOR SELECT TO authenticated USING (true);
+CREATE POLICY "sp_email_write" ON sp_email FOR ALL TO authenticated
+  USING ((SELECT ruolo FROM sp_profili WHERE id = auth.uid()) = 'admin')
+  WITH CHECK ((SELECT ruolo FROM sp_profili WHERE id = auth.uid()) = 'admin');
+
+CREATE POLICY "sp_settings_all" ON sp_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "sp_log_all" ON sp_log FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "sp_profili_read" ON sp_profili FOR SELECT TO authenticated USING (true);
+CREATE POLICY "sp_profili_own" ON sp_profili FOR ALL TO authenticated
+  USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+
+-- Keep-alive (evita sospensione progetto free)
+SELECT cron.schedule('sp-keep-alive','0 3 * * *',
+  $$ INSERT INTO sp_log (tipo, azione) VALUES ('system', 'keep_alive') $$);`;
+}
+
+/* ── LOG HELPER ── */
+async function addLog(tipo,azione,dettaglio=''){
+  try{
+    const row=await db('POST',T('log'),{body:{tipo,azione,dettaglio,created_at:new Date().toISOString()}});
+    if(row&&row[0])S.log.unshift(row[0]);
+  }catch(e){}
+}
+
+/* ── MODAL ── */
+function openModal(){$('modal-overlay').classList.add('open');}
+function closeModal(){$('modal-overlay').classList.remove('open');}
+document.addEventListener('DOMContentLoaded',()=>{
+  $('modal-close-btn').addEventListener('click',closeModal);
+  $('modal-overlay').addEventListener('click',e=>{if(e.target===$('modal-overlay'))closeModal();});
+});
+
+/* ── LOGIN EVENTS ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  // logo
+  const tl=$('tb-logo'); if(tl)tl.innerHTML=logoHTML(true);
+  const ll=$('login-logo'); if(ll)ll.innerHTML=logoHTML(false);
+
+  $('lbtn-login').addEventListener('click',doLogin);
+  $('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  $('lpwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+  // data topbar
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const tbd=$('tb-date'); if(tbd)tbd.textContent=dateStr;
+});
+</script>
+</body>
+</html>`;

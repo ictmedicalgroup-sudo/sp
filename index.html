@@ -649,7 +649,7 @@ async function callAI(prompt,forceProvider=null){
     if(!key)throw new Error('Chiave Groq non configurata nelle Impostazioni');
     const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
       headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
-      body:JSON.stringify({model:'llama-3.1-8b-instant',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'llama-3.1-8b-instant',max_tokens:2048,messages:[{role:'user',content:prompt}]})});
     if(!res.ok){const t=await res.text();throw new Error(`Groq ${res.status}: ${t.slice(0,200)}`);}
     const data=await res.json();
     return data.choices?.[0]?.message?.content||'';
@@ -658,9 +658,11 @@ async function callAI(prompt,forceProvider=null){
     if(!key)throw new Error('Chiave Gemini non configurata nelle Impostazioni');
     const res=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000}})});
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:2048,temperature:0.7}})});
     if(!res.ok){const t=await res.text();throw new Error(`Gemini ${res.status}: ${t.slice(0,200)}`);}
     const data=await res.json();
+    const finishReason=data.candidates?.[0]?.finishReason;
+    if(finishReason&&finishReason!=='STOP')console.warn('Gemini finishReason:',finishReason);
     return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
   }else{
     // Claude (default)
@@ -1040,7 +1042,6 @@ function renderSettings(pb){
         <div class="setting-row"><div class="setting-info"><div class="setting-label">Giorni prima follow-up</div><div class="setting-desc">Giorni senza risposta prima che appaia nel follow-up</div></div>
           <select id="set-fu" style="width:90px;">${[3,4,5,7].map(n=>`<option value="${n}" ${(S.settings['followup_days']||'4')===String(n)?'selected':''}>${n} giorni</option>`).join('')}</select>
         </div>
-        <div style="margin-top:14px;"><button class="btn btn-primary btn-sm" id="btn-save-cfg">Salva parametri</button></div>
       </div></div>
       <div class="card"><div class="settings-section"><h4>Profilo</h4>
         <div class="setting-row"><div class="setting-label">Email</div><div style="font-size:13px;">${esc(S.user.email)}</div></div>
@@ -1059,9 +1060,9 @@ function renderSettings(pb){
     const chiave=btn.dataset.key;const input=document.getElementById('k-'+chiave);const valore=input.value.trim();if(!valore)return;
     await saveSettings(chiave,valore);input.classList.add('saved');setTimeout(()=>input.classList.remove('saved'),2000);toast('Salvato');
   }));
-  $('btn-save-cfg')&&$('btn-save-cfg').addEventListener('click',async()=>{
-    await saveSettings('followup_days',$('set-fu').value);
-    toast('Parametri salvati');
+  $('set-fu')&&$('set-fu').addEventListener('change',async e=>{
+    await saveSettings('followup_days',e.target.value);
+    toast('Follow-up: '+e.target.value+' giorni');
   });
   document.querySelectorAll('.ai-toggle-btn').forEach(btn=>btn.addEventListener('click',async e=>{
     const prov=btn.dataset.prov;

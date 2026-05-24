@@ -37,8 +37,8 @@ body{background:var(--g50);color:var(--g900);font-family:'Raleway',sans-serif;fo
 #campagna-bar label{font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;font-size:11px;}
 #campagna-sel{padding:4px 10px;border:1px solid var(--blue-light);border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:12px;font-weight:600;background:#fff;color:var(--navy);cursor:pointer;outline:none;}
 #campagna-badge{font-size:11px;color:var(--g500);}
-main#main{flex:1;padding:28px;max-width:1400px;margin:0 auto;width:100%;}
-.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+main#main{flex:1;padding:28px 32px;width:100%;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}.page-wrap{max-width:1340px;margin:0 auto;}
 .page-title{font-size:20px;font-weight:800;color:var(--navy);}.page-subtitle{font-size:13px;color:var(--g500);margin-top:2px;}
 .card{background:#fff;border:1px solid var(--g200);border-radius:var(--r);box-shadow:var(--sh-sm);padding:20px;}
 .card-title{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;}
@@ -274,7 +274,7 @@ function renderProspect(pb){
   const cnt={nuovo:0,email_trovata:0,contattato:0,risposto:0,call:0,cliente:0,no:0};
   list.forEach(p=>{if(cnt[p.stato]!==undefined)cnt[p.stato]++;});
   const hunterUsed=S.prospect.filter(p=>p.email_verificata).length;
-  pb.innerHTML=`
+  pb.innerHTML=`<div class="page-wrap">
   <div class="page-header">
     <div><div class="page-title">Prospect</div><div class="page-subtitle">Associazioni sportive, palestre e ASD</div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -288,7 +288,7 @@ function renderProspect(pb){
     <div class="stat-card"><div class="stat-val">${cnt.contattato}</div><div class="stat-lbl">Contattati</div></div>
     <div class="stat-card"><div class="stat-val">${cnt.call}</div><div class="stat-lbl">Call schedulate</div></div>
     <div class="stat-card"><div class="stat-val">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
-    <div class="stat-card"><div class="stat-val">${hunterUsed}/25</div><div class="stat-lbl">Hunter usate</div><div class="stat-sub">questo mese</div></div>
+    <div class="stat-card" id="stat-hunter"><div class="stat-val" id="hunter-used">${hunterUsed}</div><div class="stat-lbl">Hunter usate</div><div class="stat-sub" id="hunter-avail">su 25 questo mese</div></div>
   </div>
   <div class="toolbar">
     <input type="text" id="f-search" placeholder="Cerca nome o citta..." value="${esc(S.filtri.search)}" style="width:200px;"/>
@@ -337,8 +337,9 @@ function renderProspect(pb){
         </div></td>
       </tr>`).join('')}
     </tbody>
-  </table></div>`;
+  </table></div></div>`;
   $('f-search').addEventListener('input',e=>{S.filtri.search=e.target.value;renderProspect($('pb'));});
+  if(S.settings['hunter_key'])loadHunterStats();
   $('f-stato').addEventListener('change',e=>{S.filtri.stato=e.target.value;renderProspect($('pb'));});
   $('f-sport').addEventListener('input',e=>{S.filtri.sport=e.target.value;renderProspect($('pb'));});
   $('btn-reset-filtri').addEventListener('click',()=>{S.filtri={stato:'',sport:'',search:''};renderProspect($('pb'));});
@@ -499,12 +500,52 @@ async function lanciaHunter(){
   });
   openModal();
 }
+async function loadHunterStats(){
+  const box=$('hunter-stats-box');
+  if(!S.settings['hunter_key']){
+    if(box)box.innerHTML='<div style="font-size:13px;color:var(--g300);">Inserisci la chiave Hunter.io per vedere le statistiche.</div>';
+    return;
+  }
+  try{
+    const res=await fetch(`https://api.hunter.io/v2/account?api_key=${S.settings['hunter_key']}`);
+    const data=await res.json();
+    if(data.data){
+      const used=data.data.requests.searches.used;
+      const avail=data.data.requests.searches.available;
+      const tot=used+avail;
+      const pct=Math.round(used/tot*100);
+      const plan=data.data.plan_name||'Free';
+      const email=data.data.email||'';
+      // Update prospect page stat card
+      const el=$('hunter-used');const sub=$('hunter-avail');
+      if(el)el.textContent=used;
+      if(sub)sub.innerHTML=`su ${tot} (${plan})<br><span style="font-size:10px;color:var(--g300)">rimaste: ${avail}</span>`;
+      // Update settings box
+      if(box)box.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div><div style="font-size:22px;font-weight:800;color:var(--navy);">${used}<span style="font-size:14px;font-weight:400;color:var(--g500);">/${tot}</span></div>
+            <div style="font-size:11px;color:var(--g500);text-transform:uppercase;letter-spacing:.4px;">ricerche usate questo mese</div>
+          </div>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:var(--verde);">${avail} rimaste</div>
+            <div style="font-size:11px;color:var(--g500);">Piano: ${plan}</div>
+            ${email?`<div style="font-size:11px;color:var(--g300);">${email}</div>`:''}
+          </div>
+        </div>
+        <div style="background:var(--g100);border-radius:20px;height:8px;overflow:hidden;">
+          <div style="background:${pct>80?'var(--red)':pct>50?'var(--orange)':'var(--verde)'};height:100%;width:${pct}%;border-radius:20px;transition:width .5s;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--g500);margin-top:6px;">${pct}% utilizzato &bull; reset mensile automatico</div>`;
+    }else{
+      if(box)box.innerHTML=`<div style="font-size:13px;color:var(--red);">${data.errors?.[0]?.details||'Errore API Hunter'}</div>`;
+    }
+  }catch(e){if(box)box.innerHTML='<div style="font-size:13px;color:var(--red);">Errore connessione Hunter.io</div>';}
+}
 function renderEmail(pb){
   const daInviare=S.prospect.filter(p=>p.stato==='email_trovata'&&p.email&&(!S.campagnaAttiva||p.campagna_id===S.campagnaAttiva));
   const inviate=S.email.filter(e=>e.inviata_at);
-  pb.innerHTML=`<div class="page-header"><div><div class="page-title">Email</div><div class="page-subtitle">Genera, approva e invia</div></div></div>
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Email</div><div class="page-subtitle">Genera, approva e invia</div></div></div>
   <div class="tabs"><div class="tab active" data-etab="da">Da approvare (${daInviare.length})</div><div class="tab" data-etab="inv">Inviate (${inviate.length})</div></div>
-  <div id="etab-content"></div>`;
+  <div id="etab-content"></div></div>`;
   document.querySelectorAll('[data-etab]').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('[data-etab]').forEach(x=>x.classList.remove('active'));t.classList.add('active');renderEmailTab(t.dataset.etab);}));
   renderEmailTab('da');
 }
@@ -602,12 +643,14 @@ async function inviaEmail(prospectId,oggetto,testo,tipo){
     const brevoRes=await fetch(`${CFG.FN}/sp-invia-email`,{method:'POST',
       headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
       body:JSON.stringify({to:p.email,subject:oggetto,
-        htmlContent:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">${testo}</pre>`,
+        htmlContent:'<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">'+testo.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>',
         senderName:'Medi Group',senderEmail:S.settings['brevo_sender']||'info@medicalgroup.it'})});
-    const brevoData=await brevoRes.json();
-    if(!brevoRes.ok||!brevoData.ok)throw new Error(brevoData.error||`Errore ${brevoRes.status}`);
+    const brevoRaw=await brevoRes.text();
+    let brevoData={ok:false,error:'Risposta vuota'};
+    try{brevoData=JSON.parse(brevoRaw);}catch(e){throw new Error(`Risposta non JSON (${brevoRes.status}): ${brevoRaw.slice(0,200)}`);}
+    if(!brevoRes.ok||!brevoData.ok)throw new Error(brevoData.error||`Errore ${brevoRes.status}: ${brevoRaw.slice(0,200)}`);
     await db('POST',T('email'),{body:{prospect_id:prospectId,tipo,oggetto,testo_plain:testo,
-      testo_html:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;">${testo}</pre>`,
+      testo_html:'<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;">'+testo.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>',
       inviata_at:new Date().toISOString(),risposta_ricevuta:false,created_at:new Date().toISOString()}});
     await db('PATCH',T('prospect'),{flt:`id=eq.${prospectId}`,body:{stato:'contattato',updated_at:new Date().toISOString()}});
     await addLog('email','Email inviata',`${p.nome} - ${oggetto}`);
@@ -617,7 +660,7 @@ async function inviaEmail(prospectId,oggetto,testo,tipo){
 }
 function renderFollowup(pb){
   const list=prospectDaFollowup();
-  pb.innerHTML=`<div class="page-header"><div><div class="page-title">Follow-up</div><div class="page-subtitle">Senza risposta da piu di ${S.settings['followup_days']||4} giorni</div></div></div>
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Follow-up</div><div class="page-subtitle">Senza risposta da piu di ${S.settings['followup_days']||4} giorni</div></div></div>
   ${!list.length?'<div class="empty"><div class="ei">&#128077;</div><p>Nessun follow-up necessario</p></div>':
   `<div class="tbl-wrap"><table><thead><tr><th>Prospect</th><th>Sport</th><th>Ultimo contatto</th><th>Email inv.</th><th>Azioni</th></tr></thead>
     <tbody>${list.map(p=>{
@@ -633,7 +676,7 @@ function renderFollowup(pb){
           <button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}">Stato</button>
         </div></td>
       </tr>`;
-    }).join('')}</tbody></table></div>`}`;
+    }).join('')}</tbody></table></div>`}</div>`;
   document.querySelectorAll('.btn-fu').forEach(b=>b.addEventListener('click',()=>openGeneraEmail(b.dataset.id)));
   document.querySelectorAll('.btn-stato').forEach(b=>b.addEventListener('click',()=>openCambiaStato(b.dataset.id)));
 }
@@ -683,7 +726,7 @@ function renderStats(list){
   return`<div class="stats-row" style="margin-top:16px;">${STATI_ORDER.map(s=>`<div class="stat-card"><div class="stat-val">${cnt[s]}</div><div class="stat-lbl">${STATI_LABEL[s]}</div>${s==='cliente'&&tot?`<div class="stat-sub">${Math.round(conv/tot*100)}% conv.</div>`:''}</div>`).join('')}</div>`;
 }
 function renderTemplate(pb){
-  pb.innerHTML=`<div class="page-header"><div><div class="page-title">Template Email</div><div class="page-subtitle">Modelli per la generazione delle email</div></div>
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Template Email</div><div class="page-subtitle">Modelli per la generazione delle email</div></div>
     ${S.ruolo==='admin'?'<div style="display:flex;gap:10px;"><button class="btn btn-secondary" id="btn-tpl-ai">Genera con AI</button><button class="btn btn-primary" id="btn-tpl-new">+ Nuovo</button></div>':''}
   </div>
   <div class="info-box">Variabili: {{nome}} {{sport}} {{citta}} {{km}} {{sede}}</div>
@@ -697,7 +740,7 @@ function renderTemplate(pb){
   </div>
   <div style="font-size:12px;color:var(--g500);margin-bottom:6px;"><strong>Oggetto:</strong> ${esc(t.oggetto_default||'\u2014')}</div>
   <div class="tpl-preview">${esc(t.testo||'')}</div>
-  </div>`).join('')}`;
+  </div>`).join('')}</div>`;
   if($('btn-tpl-new'))$('btn-tpl-new').addEventListener('click',()=>openEditTemplate(null));
   if($('btn-tpl-ai'))$('btn-tpl-ai').addEventListener('click',openGeneraTemplate);
   document.querySelectorAll('.btn-tpl-edit').forEach(b=>b.addEventListener('click',()=>openEditTemplate(b.dataset.id)));
@@ -767,7 +810,7 @@ async function eliminaTemplate(id){
   try{await db('DELETE',T('template'),{flt:`id=eq.${id}`});await loadAll();toast('Eliminato');goPage('template');}catch(e){toast('Errore','err');}
 }
 function renderCampagne(pb){
-  pb.innerHTML=`<div class="page-header"><div><div class="page-title">Sedi e Campagne</div><div class="page-subtitle">Sedi operative e progetti di ricerca</div></div></div>
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Sedi e Campagne</div><div class="page-subtitle">Sedi operative e progetti di ricerca</div></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -794,7 +837,7 @@ function renderCampagne(pb){
           </div>
         </div>`}).join('')}
     </div>
-  </div>`;
+  </div></div>`;
   if($('btn-sede-new'))$('btn-sede-new').addEventListener('click',()=>openEditSede(null));
   if($('btn-cmp-new'))$('btn-cmp-new').addEventListener('click',()=>openEditCampagna(null));
   document.querySelectorAll('.btn-sede-edit').forEach(b=>b.addEventListener('click',()=>openEditSede(b.dataset.id)));
@@ -856,13 +899,13 @@ async function eliminaSede(id){
 }
 function renderLog(pb){
   const icons={search:'&#128269;',email:'&#9993;',hunter:'&#127919;',system:'&#9881;'};
-  pb.innerHTML=`<div class="page-header"><div><div class="page-title">Log Attivita</div><div class="page-subtitle">Registro operazioni</div></div><button class="btn btn-secondary btn-sm" id="btn-rl">Aggiorna</button></div>
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Log Attivita</div><div class="page-subtitle">Registro operazioni</div></div><button class="btn btn-secondary btn-sm" id="btn-rl">Aggiorna</button></div>
   <div class="card">${!S.log.length?'<div class="empty"><div class="ei">&#128203;</div><p>Nessuna attivita</p></div>':
-  S.log.map(l=>`<div class="log-item"><div class="log-icon ${l.tipo||'system'}">${icons[l.tipo]||'&#9881;'}</div><div style="flex:1;"><div class="log-azione">${esc(l.azione)}</div><div class="log-dettaglio">${esc(l.dettaglio||'')}</div></div><div class="log-time">${fmtDT(l.created_at)}</div></div>`).join('')}</div>`;
+  S.log.map(l=>`<div class="log-item"><div class="log-icon ${l.tipo||'system'}">${icons[l.tipo]||'&#9881;'}</div><div style="flex:1;"><div class="log-azione">${esc(l.azione)}</div><div class="log-dettaglio">${esc(l.dettaglio||'')}</div></div><div class="log-time">${fmtDT(l.created_at)}</div></div>`).join('')}</div></div>`;
   $('btn-rl').addEventListener('click',async()=>{await loadAll();renderLog($('pb'));toast('Aggiornato');});
 }
 function renderSettings(pb){
-  pb.innerHTML=`<div class="page-header"><div><div class="page-title">Impostazioni</div><div class="page-subtitle">API key e parametri</div></div></div>
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div><div class="page-title">Impostazioni</div><div class="page-subtitle">API key e parametri</div></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
     <div class="card"><div class="settings-section"><h4>API Keys</h4>
       ${renderKey('google_maps_key','Google Maps API Key','Per la ricerca automatica prospect.','AIza...')}
@@ -881,11 +924,15 @@ function renderSettings(pb){
         <div class="setting-row"><div class="setting-label">Email</div><div style="font-size:13px;">${esc(S.user.email)}</div></div>
         <div class="setting-row"><div class="setting-label">Ruolo</div><div>${S.ruolo==='admin'?'<span style="color:var(--verde);font-weight:700;">Admin</span>':'<span style="color:var(--g500);">Viewer</span>'}</div></div>
       </div></div>
+      <div class="card" style="margin-top:16px;"><div class="settings-section"><h4>Hunter.io — utilizzo</h4>
+        <div id="hunter-stats-box"><div style="font-size:13px;color:var(--g500);">Caricamento...</div></div>
+      </div></div>
       <div class="card" style="margin-top:16px;"><div class="settings-section"><h4>Invio email</h4>
         <p style="font-size:13px;color:var(--g500);line-height:1.6;">L'invio avviene tramite Edge Function <strong>sp-invia-email</strong> su Supabase. La chiave Brevo e configurata come secret Supabase (BREVO_API_KEY).</p>
       </div></div>
     </div>
-  </div>`;
+  </div></div>`;
+  if(S.settings['hunter_key'])loadHunterStats();
   document.querySelectorAll('.key-save-btn').forEach(btn=>btn.addEventListener('click',async()=>{
     const chiave=btn.dataset.key;const input=document.getElementById('k-'+chiave);const valore=input.value.trim();if(!valore)return;
     await saveSettings(chiave,valore);input.classList.add('saved');setTimeout(()=>input.classList.remove('saved'),2000);toast('Salvato');
@@ -894,16 +941,39 @@ function renderSettings(pb){
 }
 function renderKey(chiave,label,desc,placeholder){
   const val=S.settings[chiave]||'';
-  return`<div class="setting-row"><div class="setting-info"><div class="setting-label">${esc(label)}</div><div class="setting-desc">${esc(desc)}</div></div>
-    <div style="display:flex;gap:6px;align-items:center;"><input type="password" class="key-input" id="k-${chiave}" value="${esc(val)}" placeholder="${esc(placeholder)}"/><button class="btn btn-secondary btn-sm key-save-btn" data-key="${chiave}">Salva</button></div>
+  const savedAt=S.settings[chiave+'_saved_at']||'';
+  const hasSaved=val.length>0;
+  const savedLabel=savedAt?'Inserita il '+new Date(savedAt).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  const inputStyle=hasSaved
+    ?'border:1.5px solid var(--verde);background:#EEF5E3;color:var(--g500);'
+    :'border:1.5px solid var(--g200);background:var(--g50);';
+  const statusHTML=hasSaved
+    ?`<div style="font-size:11px;color:var(--verde);margin-top:4px;font-weight:600;">Dato criptato &bull; ${savedLabel}</div>`
+    :`<div style="font-size:11px;color:var(--g300);margin-top:4px;">Nessuna chiave salvata</div>`;
+  return`<div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+    <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start;">
+      <div><div class="setting-label">${esc(label)}</div><div class="setting-desc">${esc(desc)}</div></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:16px;">
+        <input type="password" class="key-input" id="k-${chiave}" value="${esc(val)}" placeholder="${esc(placeholder)}" style="${inputStyle}width:220px;font-family:monospace;font-size:12px;padding:8px 12px;border-radius:var(--rsm);outline:none;transition:border-color .2s;"/>
+        <button class="btn btn-secondary btn-sm key-save-btn" data-key="${chiave}">Salva</button>
+      </div>
+    </div>
+    ${statusHTML}
   </div>`;
 }
 async function saveSettings(chiave,valore){
   try{
+    const now=new Date().toISOString();
     const ex=await db('GET',T('settings'),{flt:`chiave=eq.${chiave}`});
     if(ex?.length)await db('PATCH',T('settings'),{flt:`chiave=eq.${chiave}`,body:{valore}});
-    else await db('POST',T('settings'),{body:{chiave,valore,created_at:new Date().toISOString()}});
+    else await db('POST',T('settings'),{body:{chiave,valore,created_at:now}});
     S.settings[chiave]=valore;
+    // Save timestamp
+    const tsKey=chiave+'_saved_at';
+    const ex2=await db('GET',T('settings'),{flt:`chiave=eq.${tsKey}`});
+    if(ex2?.length)await db('PATCH',T('settings'),{flt:`chiave=eq.${tsKey}`,body:{valore:now}});
+    else await db('POST',T('settings'),{body:{chiave:tsKey,valore:now,created_at:now}});
+    S.settings[tsKey]=now;
   }catch(e){toast('Errore salvataggio','err');}
 }
 async function addLog(tipo,azione,dettaglio=''){

@@ -154,9 +154,8 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:poi
 </div>
 <script>
 const CFG={URL:'https://iczsdqcnvauopwkuspti.supabase.co',KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljenNkcWNudmF1b3B3a3VzcHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTQ0MjMsImV4cCI6MjA5MjQzMDQyM30.SmcRHPLM2PEq4Hn-5CQhMyQKoz0PN_0lbN_X3l9MNUE',FN:'https://iczsdqcnvauopwkuspti.supabase.co/functions/v1'};
-const T=n=>`sp_\${n}`;
-const APP_VERSION='1.0.0';
-const BUILD_DATE='2026-05-24';
+const T=n=>`sp_${n}`;
+const BUILD_STR=(()=>{const d=new Date();return'build '+d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');})();
 const S={user:null,token:null,ruolo:null,page:'prospect',prospect:[],email:[],log:[],template:[],sedi:[],campagne:[],filtri:{stato:'',sport:'',search:''},selezionati:new Set(),settings:{},campagnaAttiva:null};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -197,7 +196,7 @@ function logoHTML(small=false){return`<div style="display:flex;align-items:cente
 async function initApp(){
   $('lp').style.display='none';$('app').style.display='flex';
   $('tb-date').textContent=new Date().toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'});
-  const tv=$('tb-ver');if(tv)tv.textContent=`v${APP_VERSION}`;
+  const tv=$('tb-ver');if(tv)tv.textContent=BUILD_STR;
   $('tb-user').textContent=`${S.user.nome||''} ${S.user.cognome||''}`.trim()||S.user.email;
   $('tb-role').textContent=S.ruolo||'viewer';
   document.querySelectorAll('.tnb').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
@@ -915,7 +914,7 @@ function closeModal(){$('modal-overlay').classList.remove('open');}
 document.addEventListener('DOMContentLoaded',()=>{
   const tl=$('tb-logo');if(tl)tl.innerHTML=logoHTML(true);
   const ll=$('login-logo');if(ll)ll.innerHTML=logoHTML(false);
-  const lv=$('login-ver');if(lv)lv.textContent=`v${APP_VERSION} — ${BUILD_DATE}`;
+  const lv=$('login-ver');if(lv)lv.textContent=BUILD_STR;
   $('lbtn-login').addEventListener('click',doLogin);
   $('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   $('lpwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});

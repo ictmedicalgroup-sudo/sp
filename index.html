@@ -588,7 +588,7 @@ function openCambiaStato(id){
       await db('PATCH',T('prospect'),{flt:`id=eq.${id}`,body:{stato,note,note_risposta,updated_at:new Date().toISOString()}});
       const idx=S.prospect.findIndex(x=>x.id===id);
       if(idx>=0){S.prospect[idx].stato=stato;S.prospect[idx].note=note;S.prospect[idx].note_risposta=note_risposta;}
-      toast('Stato aggiornato');closeModal();goPage(S.page);updateBadges();
+      await loadAll();toast('Stato aggiornato');closeModal();goPage(S.page);updateBadges();
     }catch(e){toast('Errore: '+e.message,'err');}
   });
   openModal();
@@ -626,7 +626,7 @@ function openAddManuale(){
         campagna_id:$('am-campagna').value||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}});
       if(rows&&rows[0])S.prospect.unshift(rows[0]);
       await addLog('system','Prospect aggiunto',nome);
-      aggiornaDescrizioneCampagna();
+      await loadAll();aggiornaDescrizioneCampagna();
       toast('Aggiunto');closeModal();goPage('prospect');updateBadges();
     }catch(e){toast('Errore: '+e.message,'err');}
   });
@@ -711,7 +711,7 @@ async function lanciaHunter(){
     }
     await addLog('hunter','Ricerca Hunter.io',`${ok} email trovate, ${skip} saltate`);
     toast(`Hunter: ${ok} trovate, ${skip} saltate`);
-    S.selezionati.clear();closeModal();goPage('prospect');updateBadges();
+    S.selezionati.clear();await loadAll();closeModal();goPage('prospect');updateBadges();
   });
   openModal();
 }
@@ -861,19 +861,22 @@ async function inviaEmail(prospectId,oggetto,testo,tipo){
   const oggettoFinale=$('ge-ogg')?$('ge-ogg').value:oggetto;
   const btn=$('ge-i');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Invio...';
   try{
-    await fetch('https://api.brevo.com/v3/smtp/email',{method:'POST',
+    // 1. Prima invia con Brevo — salva solo se va a buon fine
+    const brevoRes=await fetch('https://api.brevo.com/v3/smtp/email',{method:'POST',
       headers:{'api-key':S.settings['brevo_key'],'Content-Type':'application/json'},
       body:JSON.stringify({sender:{name:'Medi Group',email:S.settings['brevo_sender']||'info@medicalgroup.it'},
         to:[{email:p.email}],subject:oggettoFinale,
         htmlContent:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">${testoFinale}</pre>`})});
+    const brevoText=await brevoRes.text();
+    if(!brevoRes.ok)throw new Error(`Brevo ${brevoRes.status}: ${brevoText}`);
+    // 2. Solo se Brevo ha accettato, salva nel db
     const emailRows=await db('POST',T('email'),{body:{prospect_id:prospectId,tipo,oggetto:oggettoFinale,
       testo_plain:testoFinale,testo_html:`<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;">${testoFinale}</pre>`,
       inviata_at:new Date().toISOString(),risposta_ricevuta:false,created_at:new Date().toISOString()}});
     await db('PATCH',T('prospect'),{flt:`id=eq.${prospectId}`,body:{stato:'contattato',updated_at:new Date().toISOString()}});
-    const idx=S.prospect.findIndex(x=>x.id===prospectId);
-    if(idx>=0)S.prospect[idx].stato='contattato';
-    if(emailRows?.[0])S.email.unshift(emailRows[0]);
     await addLog('email','Email inviata',`${p.nome} — ${oggettoFinale}`);
+    // 3. Ricarica tutto e aggiorna UI
+    await loadAll();
     toast('Email inviata!');closeModal();goPage('email');updateBadges();
   }catch(e){toast('Errore invio: '+e.message,'err');}
   btn.disabled=false;btn.innerHTML='📤 Approva e invia';
@@ -1054,7 +1057,7 @@ function openEditTemplate(id){
         const rows=await db('POST',T('template'),{body});
         if(rows?.[0])S.template.push(rows[0]);
       }
-      toast(t?'Template aggiornato':'Template creato');closeModal();goPage('template');
+      await loadAll();toast(t?'Template aggiornato':'Template creato');closeModal();goPage('template');
     }catch(e){toast('Errore: '+e.message,'err');}
   });
   openModal();
@@ -1218,7 +1221,7 @@ function openEditSede(id){
         body.created_at=new Date().toISOString();
         const rows=await db('POST',T('sedi'),{body});if(rows?.[0])S.sedi.push(rows[0]);
       }
-      toast(s?'Sede aggiornata':'Sede creata');closeModal();buildCampagnaBar();goPage('campagne');
+      await loadAll();toast(s?'Sede aggiornata':'Sede creata');closeModal();buildCampagnaBar();goPage('campagne');
     }catch(e){toast('Errore: '+e.message,'err');}
   });
   openModal();
@@ -1251,7 +1254,7 @@ function openEditCampagna(id){
         body.created_at=new Date().toISOString();
         const rows=await db('POST',T('campagne'),{body});if(rows?.[0])S.campagne.unshift(rows[0]);
       }
-      toast(c?'Campagna aggiornata':'Campagna creata');closeModal();buildCampagnaBar();goPage('campagne');
+      await loadAll();toast(c?'Campagna aggiornata':'Campagna creata');closeModal();buildCampagnaBar();goPage('campagne');
     }catch(e){toast('Errore: '+e.message,'err');}
   });
   openModal();

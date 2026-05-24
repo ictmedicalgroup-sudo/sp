@@ -656,7 +656,7 @@ async function callAI(prompt,forceProvider=null){
   }else if(provider==='gemini'){
     const key=(S.settings['gemini_key']||'').trim();
     if(!key)throw new Error('Chiave Gemini non configurata nelle Impostazioni');
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{method:'POST',
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000}})});
     if(!res.ok){const t=await res.text();throw new Error(`Gemini ${res.status}: ${t.slice(0,200)}`);}
@@ -693,9 +693,22 @@ function generaEmailDemo(p,campagna,sede,tpl,tipo){
   toast('Bozza demo (configura Claude API Key per AI)','warn');
 }
 function mostraEmailGenerata(p,testo,tipo){
-  const parts=testo.split('---');
-  const oggetto=(parts[0]||'').replace(/OGGETTO:\s*/i,'').trim();
-  const corpo=(parts[1]||testo).trim();
+  // Parse robustly: find OGGETTO: line anywhere, rest is corpo
+  let oggetto='',corpo='';
+  const lines=testo.split('\n');
+  let oggettoIdx=-1;
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].match(/^OGGETTO:\s*/i)){oggettoIdx=i;break;}
+  }
+  if(oggettoIdx>=0){
+    oggetto=lines[oggettoIdx].replace(/^OGGETTO:\s*/i,'').trim();
+    // corpo = everything after OGGETTO line, skipping --- separator lines
+    corpo=lines.slice(oggettoIdx+1).filter(l=>!l.match(/^-{3,}$/)).join('\n').trim();
+  }else{
+    // fallback: first line is oggetto
+    oggetto=lines[0]||'';
+    corpo=lines.slice(1).join('\n').trim();
+  }
   $('ge-output').innerHTML=`
     <div class="email-meta"><strong>A:</strong> ${esc(p.email)}</div>
     <div class="fgroup" style="margin-bottom:10px;"><label>Oggetto</label><input type="text" id="ge-ogg" value="${esc(oggetto)}" style="width:100%;"/></div>
@@ -1009,20 +1022,18 @@ function renderSettings(pb){
           <div class="setting-desc" style="margin-bottom:10px;">Attiva i provider e scegli il default. Al momento della generazione potrai scegliere tra quelli attivi.</div>
           ${['claude','groq','gemini'].map(prov=>{
             const labels={claude:'Claude (Anthropic)',groq:'Groq',gemini:'Google Gemini'};
-            const isActive=(S.settings['ai_active_'+prov]||prov)==='1'||(S.settings['ai_active_'+prov]==='1');
-            const hasKey=!!S.settings[prov==='claude'?'claude_key':prov+'_key'];
+            const stored=S.settings['ai_active_'+prov];
+            const hasKey=!!(prov==='claude'?S.settings['claude_key']:S.settings[prov+'_key']);
+            const isActive=hasKey&&(stored==='1'||(stored===undefined||stored===null||stored===''));
             const isDefault=(S.settings['ai_provider']||'claude')===prov;
-            return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${isActive&&hasKey?'var(--blue-xlight)':'var(--g50)'};border:1px solid ${isActive&&hasKey?'var(--blue-light)':'var(--g200)'};border-radius:var(--rsm);margin-bottom:6px;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <label class="sw-label" style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;">
-                  <input type="checkbox" class="ai-active-cb" data-prov="${prov}" ${isActive?'checked':''} style="opacity:0;width:0;height:0;position:absolute;">
-                  <span style="position:absolute;inset:0;background:${isActive?'var(--verde)':'var(--g300)'};border-radius:20px;transition:.2s;cursor:pointer;" onclick="this.previousElementSibling.click()"></span>
-                  <span style="position:absolute;left:${isActive?'18':'2'}px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;pointer-events:none;"></span>
-                </label>
-                <span style="font-size:13px;font-weight:600;color:${hasKey?'var(--navy)':'var(--g300)'};">${labels[prov]}</span>
-                ${!hasKey?'<span style="font-size:11px;color:var(--g300);">chiave mancante</span>':''}
-              </div>
-              <button class="btn btn-sm ${isDefault?'btn-primary':'btn-secondary'} ai-default-btn" data-prov="${prov}" style="font-size:11px;padding:3px 10px;">${isDefault?'Default':'Imposta default'}</button>
+            const bg=isActive?'var(--blue-xlight)':'var(--g50)';
+            const border=isActive?'var(--blue-light)':'var(--g200)';
+            return`<div style="display:flex;align-items:center;width:100%;padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:var(--rsm);margin-bottom:6px;gap:12px;">
+              <button class="ai-toggle-btn" data-prov="${prov}" data-active="${isActive?'1':'0'}" style="position:relative;width:38px;height:22px;border:none;border-radius:20px;background:${isActive?'var(--verde)':'var(--g300)'};cursor:pointer;flex-shrink:0;transition:background .2s;">
+                <span style="position:absolute;top:3px;left:${isActive?'19':'3'}px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left .2s;pointer-events:none;display:block;"></span>
+              </button>
+              <span style="font-size:13px;font-weight:600;color:${hasKey?'var(--navy)':'var(--g300)'};flex:1;">${labels[prov]}${!hasKey?' <span style="font-size:11px;font-weight:400;color:var(--g300);">(chiave mancante)</span>':''}</span>
+              <button class="btn btn-sm ${isDefault?'btn-primary':'btn-secondary'} ai-default-btn" data-prov="${prov}" style="font-size:11px;padding:4px 12px;flex-shrink:0;">${isDefault?'&#10003; Default':'Imposta default'}</button>
             </div>`;
           }).join('')}
         </div>
@@ -1052,11 +1063,13 @@ function renderSettings(pb){
     await saveSettings('followup_days',$('set-fu').value);
     toast('Parametri salvati');
   });
-  document.querySelectorAll('.ai-active-cb').forEach(cb=>cb.addEventListener('change',async e=>{
-    const prov=e.target.dataset.prov;
-    await saveSettings('ai_active_'+prov,e.target.checked?'1':'0');
-    toast((e.target.checked?'Attivato: ':'Disattivato: ')+prov);
-    renderSettings($('pb'));
+  document.querySelectorAll('.ai-toggle-btn').forEach(btn=>btn.addEventListener('click',async e=>{
+    const prov=btn.dataset.prov;
+    const wasActive=btn.dataset.active==='1';
+    const nowActive=!wasActive;
+    await saveSettings('ai_active_'+prov,nowActive?'1':'0');
+    toast((nowActive?'Attivato: ':'Disattivato: ')+prov);
+    await loadAll();renderSettings($('pb'));
   }));
   document.querySelectorAll('.ai-default-btn').forEach(btn=>btn.addEventListener('click',async e=>{
     const prov=e.target.dataset.prov;

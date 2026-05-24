@@ -656,9 +656,13 @@ async function inviaEmail(prospectId,oggetto,testo,tipo){
   try{
     const brevoRes=await fetch(`${CFG.FN}/sp-invia-email`,{method:'POST',
       headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
-      body:JSON.stringify({to:p.email,subject:oggetto,
-        htmlContent:'<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">'+testo.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>',
-        senderName:'Medi Group',senderEmail:S.settings['brevo_sender']||'info@medicalgroup.it'})});
+      body:(()=>{
+        const htmlSafe=testo.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const payload={to:p.email,subject:oggetto,
+          htmlContent:'<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">'+htmlSafe+'</pre>',
+          senderName:'Medi Group',senderEmail:S.settings['brevo_sender']||'info@medicalgroup.it'};
+        return JSON.stringify(payload);
+      })()});
     const brevoRaw=await brevoRes.text();
     let brevoData={ok:false,error:'Risposta vuota'};
     try{brevoData=JSON.parse(brevoRaw);}catch(e){throw new Error(`Risposta non JSON (${brevoRes.status}): ${brevoRaw.slice(0,200)}`);}

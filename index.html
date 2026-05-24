@@ -170,7 +170,8 @@ async function db(method,table,opts={}){
   const headers={'apikey':CFG.KEY,'Authorization':`Bearer ${S.token||CFG.KEY}`,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':''};
   const res=await fetch(url,{method,headers,body:body?JSON.stringify(body):undefined});
   if(!res.ok){const e=await res.text();throw new Error(`${method} ${table}: ${e}`);}
-  return method==='DELETE'?null:res.json();
+  if(method==='DELETE'||res.status===204)return null;
+  return res.json();
 }
 async function supaAuth(email,pwd){
   const res=await fetch(`${CFG.URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'apikey':CFG.KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd})});
@@ -664,9 +665,12 @@ async function inviaEmail(prospectId,oggetto,testo,tipo){
         return JSON.stringify(payload);
       })()});
     const brevoRaw=await brevoRes.text();
-    let brevoData={ok:false,error:'Risposta vuota'};
-    try{brevoData=JSON.parse(brevoRaw);}catch(e){throw new Error(`Risposta non JSON (${brevoRes.status}): ${brevoRaw.slice(0,200)}`);}
-    if(!brevoRes.ok||!brevoData.ok)throw new Error(brevoData.error||`Errore ${brevoRes.status}: ${brevoRaw.slice(0,200)}`);
+    // Se status 200 consideriamo l'invio riuscito anche se il body non è JSON
+    if(!brevoRes.ok){
+      let errMsg=brevoRaw;
+      try{errMsg=JSON.parse(brevoRaw).error||brevoRaw;}catch(e){}
+      throw new Error(`Errore ${brevoRes.status}: ${errMsg.slice(0,200)}`);
+    }
     await db('POST',T('email'),{body:{prospect_id:prospectId,tipo,oggetto,testo_plain:testo,
       testo_html:'<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;">'+testo.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>',
       inviata_at:new Date().toISOString(),risposta_ricevuta:false,created_at:new Date().toISOString()}});

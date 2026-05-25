@@ -154,7 +154,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:poi
 <script>
 const CFG={URL:'https://iczsdqcnvauopwkuspti.supabase.co',KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljenNkcWNudmF1b3B3a3VzcHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTQ0MjMsImV4cCI6MjA5MjQzMDQyM30.SmcRHPLM2PEq4Hn-5CQhMyQKoz0PN_0lbN_X3l9MNUE',FN:'https://iczsdqcnvauopwkuspti.supabase.co/functions/v1'};
 const T=n=>`sp_${n}`;
-const BUILD_STR=(()=>{const d=new Date();return'build '+d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');})();
+const BUILD_STR='';
 const S={user:null,token:null,ruolo:null,page:'prospect',prospect:[],email:[],log:[],template:[],sedi:[],campagne:[],filtri:{stato:'',sport:'',search:''},ordine:{campo:'nome',dir:'asc'},selezionati:new Set(),settings:{},campagnaAttiva:null};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -196,7 +196,6 @@ function logoHTML(small=false){return`<div style="display:flex;align-items:cente
 async function initApp(){
   $('lp').style.display='none';$('app').style.display='flex';
   $('tb-date').textContent=new Date().toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'long'});
-  const tv=$('tb-ver');if(tv)tv.textContent=BUILD_STR;
   $('tb-user').textContent=`${S.user.nome||''} ${S.user.cognome||''}`.trim()||S.user.email;
   $('tb-role').textContent=S.ruolo||'viewer';
   document.querySelectorAll('.tnb').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
@@ -1305,10 +1304,20 @@ async function addLog(tipo,azione,dettaglio=''){
 }
 function openModal(){$('modal-overlay').classList.add('open');}
 function closeModal(){$('modal-overlay').classList.remove('open');}
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   const tl=$('tb-logo');if(tl)tl.innerHTML=logoHTML(true);
   const ll=$('login-logo');if(ll)ll.innerHTML=logoHTML(false);
-  const lv=$('login-ver');if(lv)lv.textContent=BUILD_STR;
+  const lv=$('login-ver');const tv=$('tb-ver');
+  try{
+    const repo='ictmedicalgroup-sudo/gestione-sport';
+    const res=await fetch(`https://api.github.com/repos/${repo}/commits?per_page=1`);
+    if(res.ok){
+      const [commit]=await res.json();
+      const d=new Date(commit.commit.committer.date);
+      const buildStr='build '+d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+      if(lv)lv.textContent=buildStr;if(tv)tv.textContent=buildStr;
+    }else{if(lv)lv.textContent='';if(tv)tv.textContent='';}
+  }catch(e){if(lv)lv.textContent='';if(tv)tv.textContent='';}
   $('lbtn-login').addEventListener('click',doLogin);
   $('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   $('lpwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});

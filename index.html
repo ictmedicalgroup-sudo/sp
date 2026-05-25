@@ -60,8 +60,8 @@ tbody tr{border-bottom:1px solid var(--g100);transition:background .15s;}tbody t
 tbody td{padding:10px 14px;font-size:13px;color:var(--g700);vertical-align:middle;}
 input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:pointer;}
 .badge-stato{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
-.s-nuovo{background:#EEF5E3;color:#5a8a2e;}.s-email_trovata{background:#E3F0FF;color:#1a5fa8;}.s-contattato{background:var(--orange-light);color:#b05a0a;}.s-risposto{background:var(--purple-light);color:#6a2d8a;}.s-call{background:#E3FFF0;color:#1a7a4a;}.s-cliente{background:#EEF5E3;color:#2e6e1a;}.s-no{background:var(--red-light);color:var(--red);}
-.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}.dot-nuovo{background:#9DBF60;}.dot-email_trovata{background:#3a7fd4;}.dot-contattato{background:var(--orange);}.dot-risposto{background:var(--purple);}.dot-call{background:#2e9e6a;}.dot-cliente{background:#3a9e1a;}.dot-no{background:var(--red);}
+.s-nuovo{background:#EEF5E3;color:#5a8a2e;}.s-email_trovata{background:#E3F0FF;color:#1a5fa8;}.s-contattato{background:var(--orange-light);color:#b05a0a;}.s-risposto{background:var(--purple-light);color:#6a2d8a;}.s-call{background:#E3FFF0;color:#1a7a4a;}.s-cliente{background:#EEF5E3;color:#2e6e1a;}.s-gia_cliente{background:#d4edda;color:#155724;}.s-no{background:var(--red-light);color:var(--red);}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}.dot-nuovo{background:#9DBF60;}.dot-email_trovata{background:#3a7fd4;}.dot-contattato{background:var(--orange);}.dot-risposto{background:var(--purple);}.dot-call{background:#2e9e6a;}.dot-cliente{background:#3a9e1a;}.dot-gia_cliente{background:#1a7a3a;}.dot-no{background:var(--red);}
 .sel-bar{background:var(--blue-xlight);border:1px solid var(--blue-light);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .sel-bar.visible{display:flex;}.sel-info{font-size:13px;font-weight:600;color:var(--navy);}
 #modal-overlay{position:fixed;inset:0;background:rgba(74,76,77,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
@@ -277,11 +277,11 @@ function goPage(pg){
   else if(pg==='log')renderLog(pb);
   else if(pg==='settings')renderSettings(pb);
 }
-function statoBadge(stato){const L={nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',no:'Non interessato'};return`<span class="badge-stato s-${stato}"><span class="dot dot-${stato}"></span>${L[stato]||stato}</span>`;}
+function statoBadge(stato){const L={nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',gia_cliente:'Già cliente',no:'Non interessato'};return`<span class="badge-stato s-${stato}"><span class="dot dot-${stato}"></span>${L[stato]||stato}</span>`;}
 function renderProspect(pb){
   S.selezionati.clear();
   const list=prospectFiltrati();
-  const cnt={nuovo:0,email_trovata:0,contattato:0,risposto:0,call:0,cliente:0,no:0};
+  const cnt={nuovo:0,email_trovata:0,contattato:0,risposto:0,call:0,cliente:0,gia_cliente:0,no:0};
   list.forEach(p=>{if(cnt[p.stato]!==undefined)cnt[p.stato]++;});
   const hunterUsed=S.prospect.filter(p=>p.email_verificata).length;
   pb.innerHTML=`<div class="page-wrap">
@@ -294,11 +294,11 @@ function renderProspect(pb){
   <div class="stats-row">
     <div class="stat-card"><div class="stat-val">${list.length}</div><div class="stat-lbl">Totali</div></div>
     <div class="stat-card"><div class="stat-val">${cnt.nuovo}</div><div class="stat-lbl">Nuovi</div></div>
-    <div class="stat-card"><div class="stat-val">${cnt.email_trovata}</div><div class="stat-lbl">Email trovata</div></div>
+    <div class="stat-card" id="stat-hunter"><div class="stat-val" id="hunter-used">${cnt.email_trovata}</div><div class="stat-lbl">Email trovate</div><div class="stat-sub" id="hunter-avail">Hunter: ...</div></div>
     <div class="stat-card"><div class="stat-val">${cnt.contattato}</div><div class="stat-lbl">Contattati</div></div>
     <div class="stat-card"><div class="stat-val">${cnt.call}</div><div class="stat-lbl">Call schedulate</div></div>
     <div class="stat-card"><div class="stat-val">${cnt.cliente}</div><div class="stat-lbl">Clienti</div></div>
-    <div class="stat-card" id="stat-hunter"><div class="stat-val" id="hunter-used">${hunterUsed}</div><div class="stat-lbl">Hunter usate</div><div class="stat-sub" id="hunter-avail">su 25 questo mese</div></div>
+    <div class="stat-card"><div class="stat-val">${cnt.gia_cliente}</div><div class="stat-lbl">Già clienti</div></div>
   </div>
   <div class="toolbar">
     <input type="text" id="f-search" placeholder="Cerca nome o citta..." value="${esc(S.filtri.search)}" style="width:200px;"/>
@@ -311,6 +311,7 @@ function renderProspect(pb){
       <option value="call" ${S.filtri.stato==='call'?'selected':''}>Call schedulata</option>
       <option value="cliente" ${S.filtri.stato==='cliente'?'selected':''}>Cliente</option>
       <option value="no" ${S.filtri.stato==='no'?'selected':''}>Non interessato</option>
+      <option value="gia_cliente" ${S.filtri.stato==='gia_cliente'?'selected':''}>Già cliente</option>
     </select>
     <input type="text" id="f-sport" placeholder="Sport..." value="${esc(S.filtri.sport)}" style="width:130px;"/>
     <button class="btn btn-secondary btn-sm" id="btn-reset-filtri">Reset</button>
@@ -344,13 +345,13 @@ function renderProspect(pb){
       ${list.length===0?'<tr><td colspan="9"><div class="empty"><div class="ei">&#128269;</div><p>Nessun prospect</p><small>Aggiungi manualmente o usa Cerca su Google Maps</small></div></td></tr>':
       list.map(p=>`<tr>
         <td><input type="checkbox" class="cb-p" data-id="${p.id}" ${S.selezionati.has(p.id)?'checked':''}/></td>
-        <td><div style="font-weight:700;color:var(--navy);">${esc(p.nome)}</div>${p.sito_web?`<div style="font-size:11px;color:var(--g500);">${esc(p.sito_web)}</div>`:''}</td>
+        <td><div style="font-weight:700;color:var(--navy);">${esc(p.nome)}</div>${p.sito_web?`<div style="font-size:11px;"><a href="${esc(p.sito_web)}" target="_blank" style="color:var(--verde);text-decoration:none;" onclick="event.stopPropagation()">${esc(p.sito_web.replace(/https?:\/\//,''))}</a></div>`:''}</td>
         <td style="font-size:12px;">${esc(p.sport||'\u2014')}</td>
         <td style="font-size:13px;">${esc(p.citta||'\u2014')}</td>
         <td style="font-size:12px;">${p.km_sede?p.km_sede+'km':'\u2014'}</td>
         <td>${p.email?`<span style="font-size:12px;color:var(--navy);font-weight:600;">${esc(p.email)}</span>${p.email_verificata?' <span style="font-size:10px;color:var(--verde);">(H)</span>':''}` :'<span style="color:var(--g300);font-size:12px;">\u2014</span>'}</td>
         <td>${statoBadge(p.stato)}</td>
-        <td style="font-size:12px;color:var(--g500);line-height:1.6;">${fmt(p.updated_at)}<br><span style="font-size:11px;color:var(--g300);">${p.updated_at?new Date(p.updated_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):''}</span></td>
+        <td><div style="font-size:12px;color:var(--g500);">${fmt(p.updated_at)}</div>${p.updated_at?`<div style="font-size:11px;color:var(--g300);">${new Date(p.updated_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</div>`:''}</td>
         <td><div style="display:flex;gap:5px;">
           <button class="btn btn-secondary btn-sm btn-scheda" data-id="${p.id}">Scheda</button>
           ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}">Stato</button>`:''}
@@ -406,7 +407,7 @@ function openScheda(id,editMode=false){
         <div class="frow"><div class="fgroup"><label>Telefono</label><input type="text" id="sc-tel" value="${esc(p.telefono||'')}"/></div><div class="fgroup"><label>Sito web</label><input type="text" id="sc-sito" value="${esc(p.sito_web||'')}"/></div></div>
         <div class="frow"><div class="fgroup"><label>Email</label><input type="email" id="sc-email" value="${esc(p.email||'')}"/></div><div class="fgroup"><label>Campagna</label><select id="sc-campagna"><option value="">Nessuna</option>${campagneOpts}</select></div></div>
         <div class="frow full"><div class="fgroup"><label>Stato</label>
-          <select id="sc-stato">${['nuovo','email_trovata','contattato','risposto','call','cliente','no'].map(s=>`<option value="${s}" ${p.stato===s?'selected':''}>${{nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',no:'Non interessato'}[s]}</option>`).join('')}</select>
+          <select id="sc-stato">${['nuovo','email_trovata','contattato','risposto','call','cliente','gia_cliente','no'].map(s=>`<option value="${s}" ${p.stato===s?'selected':''}>${{nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',gia_cliente:'Già cliente',no:'Non interessato'}[s]}</option>`).join('')}</select>
         </div></div>
       </div>
       <div>
@@ -483,7 +484,7 @@ function openCambiaStato(id){
   $('modal-title').textContent='Aggiorna: '+p.nome;$('modal-box').className='modal';
   $('modal-body').innerHTML=`
     <div class="frow full"><div class="fgroup"><label>Nuovo stato</label>
-      <select id="ns">${['nuovo','email_trovata','contattato','risposto','call','cliente','no'].map(s=>`<option value="${s}" ${p.stato===s?'selected':''}>${{nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',no:'Non interessato'}[s]}</option>`).join('')}</select>
+      <select id="ns">${['nuovo','email_trovata','contattato','risposto','call','cliente','gia_cliente','no'].map(s=>`<option value="${s}" ${p.stato===s?'selected':''}>${{nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',gia_cliente:'Già cliente',no:'Non interessato'}[s]}</option>`).join('')}</select>
     </div></div>
     <div class="frow full" style="margin-top:10px;"><div class="fgroup"><label>Note</label><textarea id="nn">${esc(p.note||'')}</textarea></div></div>
     <div class="frow full" style="margin-top:10px;"><div class="fgroup"><label>Testo risposta</label><textarea id="nr" placeholder="Incolla o riassumi la risposta...">${esc(p.note_risposta||'')}</textarea></div></div>`;
@@ -611,9 +612,8 @@ async function loadHunterStats(){
       const plan=data.data.plan_name||'Free';
       const email=data.data.email||'';
       // Update prospect page stat card
-      const el=$('hunter-used');const sub=$('hunter-avail');
-      if(el)el.textContent=used;
-      if(sub)sub.innerHTML=`su ${tot} (${plan})<br><span style="font-size:10px;color:var(--g300)">rimaste: ${avail}</span>`;
+      const sub=$('hunter-avail');
+      if(sub)sub.textContent=`Hunter: ${avail} rimaste`;
       // Update settings box
       if(box)box.innerHTML=`
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -850,8 +850,8 @@ function renderFollowup(pb){
   document.querySelectorAll('.btn-fu').forEach(b=>b.addEventListener('click',()=>openGeneraEmail(b.dataset.id)));
   document.querySelectorAll('.btn-stato').forEach(b=>b.addEventListener('click',()=>openCambiaStato(b.dataset.id)));
 }
-const STATI_ORDER=['nuovo','email_trovata','contattato','risposto','call','cliente','no'];
-const STATI_LABEL={nuovo:'Nuovi',email_trovata:'Email trovata',contattato:'Contattati',risposto:'Risposto',call:'Call',cliente:'Clienti',no:'Non interessati'};
+const STATI_ORDER=['nuovo','email_trovata','contattato','risposto','call','cliente','gia_cliente','no'];
+const STATI_LABEL={nuovo:'Nuovi',email_trovata:'Email trovata',contattato:'Contattati',risposto:'Risposto',call:'Call',cliente:'Clienti',gia_cliente:'Già clienti',no:'Non interessati'};
 function renderPipeline(pb){
   pb.innerHTML=`<div class="page-header"><div><div class="page-title">Pipeline</div><div class="page-subtitle">Avanzamento per campagna</div></div></div>
   <div class="tabs">${S.campagnaAttiva?'<div class="tab active" data-ptab="corrente">Campagna corrente</div>':''}<div class="tab ${!S.campagnaAttiva?'active':''}" data-ptab="aggregata">Vista aggregata</div></div>

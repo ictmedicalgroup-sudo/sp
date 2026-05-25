@@ -62,8 +62,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:poi
 .badge-stato{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
 .s-nuovo{background:#EEF5E3;color:#5a8a2e;}.s-email_trovata{background:#E3F0FF;color:#1a5fa8;}.s-contattato{background:var(--orange-light);color:#b05a0a;}.s-risposto{background:var(--purple-light);color:#6a2d8a;}.s-call{background:#E3FFF0;color:#1a7a4a;}.s-cliente{background:#EEF5E3;color:#2e6e1a;}.s-gia_cliente{background:#d4edda;color:#155724;}.s-no{background:var(--red-light);color:var(--red);}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}.dot-nuovo{background:#9DBF60;}.dot-email_trovata{background:#3a7fd4;}.dot-contattato{background:var(--orange);}.dot-risposto{background:var(--purple);}.dot-call{background:#2e9e6a;}.dot-cliente{background:#3a9e1a;}.dot-gia_cliente{background:#1a7a3a;}.dot-no{background:var(--red);}
-.sel-bar{background:var(--blue-xlight);border:1px solid var(--blue-light);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.sel-bar.visible{display:flex;}.sel-info{font-size:13px;font-weight:600;color:var(--navy);}
+.sel-info{font-size:13px;font-weight:600;color:var(--navy);}
 #modal-overlay{position:fixed;inset:0;background:rgba(74,76,77,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
 #modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:var(--rlg);box-shadow:var(--sh-lg);width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;}
@@ -327,24 +326,14 @@ function renderProspect(pb){
       <span style="font-size:12px;color:var(--g500);">${list.length} risultati</span>
     </div>
   </div>
-  <div class="sel-bar" id="sel-bar">
-    <div class="sel-info"><span id="sel-count">0</span> selezionati
-      <span id="sel-warn" style="display:none;color:var(--orange);font-size:12px;margin-left:8px;">Max 25 (limite Hunter)</span>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-secondary btn-sm" id="btn-desel">Deseleziona tutti</button>
-      ${S.ruolo==='admin'?'<button class="btn btn-primary btn-sm" id="btn-hunter-sel">Cerca email (Hunter)</button>':''}
-    </div>
-  </div>
+
   <div class="tbl-wrap"><table>
     <thead><tr>
-      <th style="width:40px;"><input type="checkbox" id="cb-all"/></th>
       <th>Nome</th><th>Sport</th><th>Citta</th><th>Km</th><th>Email</th><th>Stato</th><th>Aggiornato</th><th>Azioni</th>
     </tr></thead>
     <tbody id="tbody-p">
       ${list.length===0?'<tr><td colspan="9"><div class="empty"><div class="ei">&#128269;</div><p>Nessun prospect</p><small>Aggiungi manualmente o usa Cerca su Google Maps</small></div></td></tr>':
-      list.map(p=>`<tr>
-        <td><input type="checkbox" class="cb-p" data-id="${p.id}" ${S.selezionati.has(p.id)?'checked':''}/></td>
+      list.map(p=>`<tr style="cursor:pointer;" onclick="openScheda('${p.id}')"> 
         <td><div style="font-weight:700;color:var(--navy);">${esc(p.nome)}</div>${p.sito_web?`<div style="font-size:11px;"><a href="${esc(p.sito_web)}" target="_blank" style="color:var(--verde);text-decoration:none;" onclick="event.stopPropagation()">${esc(p.sito_web.replace(/https?:\/\//,''))}</a></div>`:''}</td>
         <td style="font-size:12px;">${esc(p.sport||'\u2014')}</td>
         <td style="font-size:13px;">${esc(p.citta||'\u2014')}</td>
@@ -352,10 +341,9 @@ function renderProspect(pb){
         <td>${p.email?`<span style="font-size:12px;color:var(--navy);font-weight:600;">${esc(p.email)}</span>${p.email_verificata?' <span style="font-size:10px;color:var(--verde);">(H)</span>':''}` :'<span style="color:var(--g300);font-size:12px;">\u2014</span>'}</td>
         <td>${statoBadge(p.stato)}</td>
         <td><div style="font-size:12px;color:var(--g500);">${fmt(p.updated_at)}</div>${p.updated_at?`<div style="font-size:11px;color:var(--g300);">${new Date(p.updated_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</div>`:''}</td>
-        <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
-          <button class="btn btn-secondary btn-sm btn-scheda" data-id="${p.id}">Scheda</button>
-          ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}">Stato</button>`:''}
-          ${S.ruolo==='admin'&&!p.email?`<button class="btn btn-sm btn-hunter-row" data-id="${p.id}" style="background:#ff6b35;color:#fff;font-size:11px;">Hunter</button>`:''}
+        <td onclick="event.stopPropagation()"><div style="display:flex;gap:5px;">
+          ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}" onclick="event.stopPropagation()">Stato</button>`:''}
+          ${S.ruolo==='admin'&&!p.email?`<button class="btn btn-sm btn-hunter-row" data-id="${p.id}" onclick="event.stopPropagation()" style="background:#ff6b35;color:#fff;font-size:11px;padding:5px 10px;">Hunter</button>`:''}
         </div></td>
       </tr>`).join('')}
     </tbody>
@@ -371,28 +359,14 @@ function renderProspect(pb){
     S.ordine={campo,dir};renderProspect($('pb'));
   });
   $('btn-reset-filtri').addEventListener('click',()=>{S.filtri={stato:'',sport:'',search:''};renderProspect($('pb'));});
-  document.querySelectorAll('.cb-p').forEach(cb=>cb.addEventListener('change',e=>{
-    const id=e.target.dataset.id;
-    if(e.target.checked){if(S.selezionati.size>=25){e.target.checked=false;toast('Massimo 25 selezionabili','warn');return;}S.selezionati.add(id);}
-    else S.selezionati.delete(id);aggiornaSelBar();
-  }));
-  $('cb-all')&&$('cb-all').addEventListener('change',e=>{
-    let count=S.selezionati.size;
-    document.querySelectorAll('.cb-p').forEach(cb=>{
-      if(e.target.checked){if(!S.selezionati.has(cb.dataset.id)&&count<25){S.selezionati.add(cb.dataset.id);count++;cb.checked=true;}}
-      else{S.selezionati.delete(cb.dataset.id);cb.checked=false;}
-    });aggiornaSelBar();
-  });
-  $('btn-desel')&&$('btn-desel').addEventListener('click',()=>{S.selezionati.clear();document.querySelectorAll('.cb-p').forEach(cb=>cb.checked=false);aggiornaSelBar();});
-  $('btn-hunter-sel')&&$('btn-hunter-sel').addEventListener('click',lanciaHunter);
-  document.querySelectorAll('.btn-scheda').forEach(b=>b.addEventListener('click',()=>openScheda(b.dataset.id)));
+
   document.querySelectorAll('.btn-hunter-row').forEach(b=>b.addEventListener('click',()=>lanciaHunterSingolo(b.dataset.id)));
   document.querySelectorAll('.btn-stato').forEach(b=>b.addEventListener('click',()=>openCambiaStato(b.dataset.id)));
   if($('btn-cerca-maps'))$('btn-cerca-maps').addEventListener('click',openCercaMaps);
   if($('btn-add-manuale'))$('btn-add-manuale').addEventListener('click',openAddManuale);
   aggiornaSelBar();
 }
-function aggiornaSelBar(){const n=S.selezionati.size,bar=$('sel-bar');if(!bar)return;bar.classList.toggle('visible',n>0);const sc=$('sel-count');if(sc)sc.textContent=n;const sw=$('sel-warn');if(sw)sw.style.display=n>=25?'inline':'none';}
+
 function openScheda(id,editMode=false){
   const p=S.prospect.find(x=>x.id===id);if(!p)return;
   const emails=S.email.filter(e=>e.prospect_id===id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));

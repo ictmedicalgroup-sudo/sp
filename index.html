@@ -365,21 +365,70 @@ function renderProspect(pb){
   aggiornaSelBar();
 }
 function aggiornaSelBar(){const n=S.selezionati.size,bar=$('sel-bar');if(!bar)return;bar.classList.toggle('visible',n>0);const sc=$('sel-count');if(sc)sc.textContent=n;const sw=$('sel-warn');if(sw)sw.style.display=n>=25?'inline':'none';}
-function openScheda(id){
+function openScheda(id,editMode=false){
   const p=S.prospect.find(x=>x.id===id);if(!p)return;
   const emails=S.email.filter(e=>e.prospect_id===id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   const campagna=S.campagne.find(c=>c.id===p.campagna_id);const sede=campagna?S.sedi.find(s=>s.id===campagna.sede_id):null;
   $('modal-title').textContent=p.nome;$('modal-box').className='modal modal-lg';
-  $('modal-body').innerHTML=`
+  const campagneOpts=S.campagne.map(cmp=>`<option value="${cmp.id}" ${p.campagna_id===cmp.id?'selected':''}>${esc(cmp.nome)}</option>`).join('');
+  if(editMode){
+    $('modal-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
       <div><div class="card-title">Dati</div>
-        <div class="setting-row"><div class="setting-label">Sport</div><div>${esc(p.sport||'\u2014')}</div></div>
-        <div class="setting-row"><div class="setting-label">Citta</div><div>${esc(p.citta||'\u2014')}</div></div>
-        <div class="setting-row"><div class="setting-label">Km sede</div><div>${p.km_sede?p.km_sede+' km':'\u2014'}</div></div>
-        <div class="setting-row"><div class="setting-label">Telefono</div><div>${esc(p.telefono||'\u2014')}</div></div>
-        <div class="setting-row"><div class="setting-label">Email</div><div>${p.email?esc(p.email)+' '+(p.email_verificata?'(Hunter)':''):'<span style="color:var(--g300);">\u2014</span>'}</div></div>
+        <div class="frow"><div class="fgroup"><label>Nome</label><input type="text" id="sc-nome" value="${esc(p.nome||'')}"/></div><div class="fgroup"><label>Sport</label><input type="text" id="sc-sport" value="${esc(p.sport||'')}"/></div></div>
+        <div class="frow"><div class="fgroup"><label>Citta</label><input type="text" id="sc-citta" value="${esc(p.citta||'')}"/></div><div class="fgroup"><label>Km sede</label><input type="number" id="sc-km" value="${p.km_sede||''}" step="0.1"/></div></div>
+        <div class="frow full"><div class="fgroup"><label>Indirizzo</label><input type="text" id="sc-ind" value="${esc(p.indirizzo||'')}"/></div></div>
+        <div class="frow"><div class="fgroup"><label>Telefono</label><input type="text" id="sc-tel" value="${esc(p.telefono||'')}"/></div><div class="fgroup"><label>Sito web</label><input type="text" id="sc-sito" value="${esc(p.sito_web||'')}"/></div></div>
+        <div class="frow"><div class="fgroup"><label>Email</label><input type="email" id="sc-email" value="${esc(p.email||'')}"/></div><div class="fgroup"><label>Campagna</label><select id="sc-campagna"><option value="">Nessuna</option>${campagneOpts}</select></div></div>
+        <div class="frow full"><div class="fgroup"><label>Stato</label>
+          <select id="sc-stato">${['nuovo','email_trovata','contattato','risposto','call','cliente','no'].map(s=>`<option value="${s}" ${p.stato===s?'selected':''}>${{nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',no:'Non interessato'}[s]}</option>`).join('')}</select>
+        </div></div>
+      </div>
+      <div>
+        <div class="fgroup" style="margin-bottom:14px;"><label>Note</label><textarea id="sc-note" style="min-height:100px;">${esc(p.note||'')}</textarea></div>
+        <div class="fgroup"><label>Risposta ricevuta</label><textarea id="sc-risposta" style="min-height:80px;">${esc(p.note_risposta||'')}</textarea></div>
+      </div>
+    </div>
+    <div class="card-title">Email inviate (${emails.length})</div>
+    ${emails.length===0?'<p class="nota">Nessuna email inviata.</p>':emails.map(e=>`
+      <div style="border:1px solid var(--g200);border-radius:var(--r);padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-weight:700;font-size:13px;">${esc(e.oggetto||'—')}</span>
+          <span style="font-size:11px;color:var(--g500);">${fmtDT(e.inviata_at||e.created_at)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--g700);white-space:pre-wrap;max-height:80px;overflow:hidden;cursor:pointer;" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'80px':'none'">${esc(e.testo_plain||'')}</div>
+      </div>`).join('')}`;
+    $('modal-foot').innerHTML=`<button class="btn btn-secondary" id="sc-annulla">Annulla</button><button class="btn btn-primary" id="sc-salva">Salva modifiche</button>`;
+    $('sc-annulla').addEventListener('click',()=>openScheda(id,false));
+    $('sc-salva').addEventListener('click',async()=>{
+      const btn=$('sc-salva');btn.disabled=true;btn.textContent='Salvataggio...';
+      try{
+        await db('PATCH',T('prospect'),{flt:`id=eq.${id}`,body:{
+          nome:$('sc-nome').value.trim(),sport:$('sc-sport').value.trim(),
+          citta:$('sc-citta').value.trim(),km_sede:parseFloat($('sc-km').value)||null,
+          indirizzo:$('sc-ind').value.trim(),telefono:$('sc-tel').value.trim(),
+          sito_web:$('sc-sito').value.trim(),email:$('sc-email').value.trim(),
+          campagna_id:$('sc-campagna').value||null,stato:$('sc-stato').value,
+          note:$('sc-note').value,note_risposta:$('sc-risposta').value,
+          updated_at:new Date().toISOString()
+        }});
+        await loadAll();toast('Salvato');openScheda(id,false);
+      }catch(e){toast('Errore: '+e.message,'err');btn.disabled=false;btn.textContent='Salva modifiche';}
+    });
+  }else{
+    $('modal-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div><div class="card-title">Dati</div>
+        <div class="setting-row"><div class="setting-label">Nome</div><div style="font-weight:600;">${esc(p.nome||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Sport</div><div>${esc(p.sport||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Citta</div><div>${esc(p.citta||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Indirizzo</div><div style="font-size:12px;">${esc(p.indirizzo||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Km sede</div><div>${p.km_sede?p.km_sede+' km':'—'}</div></div>
+        <div class="setting-row"><div class="setting-label">Telefono</div><div>${esc(p.telefono||'—')}</div></div>
+        <div class="setting-row"><div class="setting-label">Sito web</div><div>${p.sito_web?`<a href="${esc(p.sito_web)}" target="_blank" style="color:var(--verde);font-size:12px;">${esc(p.sito_web)}</a>`:'—'}</div></div>
+        <div class="setting-row"><div class="setting-label">Email</div><div>${p.email?esc(p.email)+' '+(p.email_verificata?'<span style="color:var(--verde);font-size:11px;">(Hunter)</span>':''):'<span style="color:var(--g300);">—</span>'}</div></div>
         <div class="setting-row"><div class="setting-label">Stato</div><div>${statoBadge(p.stato)}</div></div>
-        <div class="setting-row"><div class="setting-label">Campagna</div><div style="font-size:12px;">${campagna?esc(campagna.nome):'\u2014'}${sede?' - '+esc(sede.nome):''}</div></div>
+        <div class="setting-row"><div class="setting-label">Campagna</div><div style="font-size:12px;">${campagna?esc(campagna.nome):'—'}${sede?' - '+esc(sede.nome):''}</div></div>
       </div>
       <div><div class="card-title">Note</div>
         <div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;min-height:80px;font-size:13px;line-height:1.6;">${esc(p.note||'Nessuna nota.')}</div>
@@ -390,16 +439,18 @@ function openScheda(id){
     ${emails.length===0?'<p class="nota">Nessuna email inviata.</p>':emails.map(e=>`
       <div style="border:1px solid var(--g200);border-radius:var(--r);padding:12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-          <span style="font-weight:700;font-size:13px;">${esc(e.oggetto||'\u2014')}</span>
+          <span style="font-weight:700;font-size:13px;">${esc(e.oggetto||'—')}</span>
           <span style="font-size:11px;color:var(--g500);">${fmtDT(e.inviata_at||e.created_at)}</span>
         </div>
         <div style="font-size:11px;color:var(--g500);margin-bottom:4px;">${esc(e.tipo)}${e.risposta_ricevuta?' - Risposta ricevuta':''}</div>
         <div style="font-size:12px;color:var(--g700);white-space:pre-wrap;max-height:80px;overflow:hidden;cursor:pointer;" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'80px':'none'">${esc(e.testo_plain||'')}</div>
       </div>`).join('')}`;
-  $('modal-foot').innerHTML=`${S.ruolo==='admin'?'<button class="btn btn-primary" id="m-genera">Genera email</button>':''}
-    <button class="btn btn-secondary" id="m-close2">Chiudi</button>`;
-  $('m-close2').addEventListener('click',closeModal);
-  if($('m-genera'))$('m-genera').addEventListener('click',()=>{closeModal();openGeneraEmail(id);});
+    $('modal-foot').innerHTML=`${S.ruolo==='admin'?'<button class="btn btn-secondary" id="m-modifica">Modifica</button><button class="btn btn-primary" id="m-genera">Genera email</button>':''}
+      <button class="btn btn-secondary" id="m-close2">Chiudi</button>`;
+    $('m-close2').addEventListener('click',closeModal);
+    if($('m-genera'))$('m-genera').addEventListener('click',()=>{closeModal();openGeneraEmail(id);});
+    if($('m-modifica'))$('m-modifica').addEventListener('click',()=>openScheda(id,true));
+  }
   openModal();
 }
 function openCambiaStato(id){

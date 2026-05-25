@@ -156,7 +156,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:poi
 const CFG={URL:'https://iczsdqcnvauopwkuspti.supabase.co',KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljenNkcWNudmF1b3B3a3VzcHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTQ0MjMsImV4cCI6MjA5MjQzMDQyM30.SmcRHPLM2PEq4Hn-5CQhMyQKoz0PN_0lbN_X3l9MNUE',FN:'https://iczsdqcnvauopwkuspti.supabase.co/functions/v1'};
 const T=n=>`sp_${n}`;
 const BUILD_STR=(()=>{const d=new Date();return'build '+d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');})();
-const S={user:null,token:null,ruolo:null,page:'prospect',prospect:[],email:[],log:[],template:[],sedi:[],campagne:[],filtri:{stato:'',sport:'',search:''},selezionati:new Set(),settings:{},campagnaAttiva:null};
+const S={user:null,token:null,ruolo:null,page:'prospect',prospect:[],email:[],log:[],template:[],sedi:[],campagne:[],filtri:{stato:'',sport:'',search:''},ordine:{campo:'nome',dir:'asc'},selezionati:new Set(),settings:{},campagnaAttiva:null};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function fmt(d){if(!d)return'\u2014';const dt=typeof d==='string'?new Date(d.length===10?d+'T00:00:00':d):d;return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -231,13 +231,22 @@ function aggiornaDescrizioneCampagna(){
   badge.textContent=`${sede?sede.nome+' - ':''} raggio ${c?c.raggio_km:30}km - ${n} prospect`;
 }
 function prospectFiltrati(){
-  return S.prospect.filter(p=>{
+  const list=S.prospect.filter(p=>{
     if(S.campagnaAttiva&&p.campagna_id!==S.campagnaAttiva)return false;
     if(S.filtri.stato&&p.stato!==S.filtri.stato)return false;
     if(S.filtri.sport&&!(p.sport||'').toLowerCase().includes(S.filtri.sport.toLowerCase()))return false;
     if(S.filtri.search){const q=S.filtri.search.toLowerCase();if(!(p.nome||'').toLowerCase().includes(q)&&!(p.citta||'').toLowerCase().includes(q))return false;}
     return true;
   });
+  const{campo,dir}=S.ordine;
+  list.sort((a,b)=>{
+    let va=a[campo],vb=b[campo];
+    if(campo==='nome'){va=(va||'').toLowerCase();vb=(vb||'').toLowerCase();return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);}
+    if(campo==='updated_at'){va=new Date(va||0);vb=new Date(vb||0);return dir==='asc'?va-vb:vb-va;}
+    if(campo==='km_sede'){va=parseFloat(va)||9999;vb=parseFloat(vb)||9999;return dir==='asc'?va-vb:vb-va;}
+    return 0;
+  });
+  return list;
 }
 function updateBadges(){
   const daApp=S.prospect.filter(p=>p.stato==='email_trovata'&&p.email&&(!S.campagnaAttiva||p.campagna_id===S.campagnaAttiva)).length;
@@ -305,7 +314,17 @@ function renderProspect(pb){
     </select>
     <input type="text" id="f-sport" placeholder="Sport..." value="${esc(S.filtri.sport)}" style="width:130px;"/>
     <button class="btn btn-secondary btn-sm" id="btn-reset-filtri">Reset</button>
-    <span style="margin-left:auto;font-size:12px;color:var(--g500);">${list.length} risultati</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <select id="f-ordine" style="font-size:12px;padding:5px 10px;">
+        <option value="nome_asc" ${S.ordine.campo==='nome'&&S.ordine.dir==='asc'?'selected':''}>Nome A→Z</option>
+        <option value="nome_desc" ${S.ordine.campo==='nome'&&S.ordine.dir==='desc'?'selected':''}>Nome Z→A</option>
+        <option value="updated_at_desc" ${S.ordine.campo==='updated_at'&&S.ordine.dir==='desc'?'selected':''}>Aggiornato (recente)</option>
+        <option value="updated_at_asc" ${S.ordine.campo==='updated_at'&&S.ordine.dir==='asc'?'selected':''}>Aggiornato (meno recente)</option>
+        <option value="km_sede_asc" ${S.ordine.campo==='km_sede'&&S.ordine.dir==='asc'?'selected':''}>Km (vicino)</option>
+        <option value="km_sede_desc" ${S.ordine.campo==='km_sede'&&S.ordine.dir==='desc'?'selected':''}>Km (lontano)</option>
+      </select>
+      <span style="font-size:12px;color:var(--g500);">${list.length} risultati</span>
+    </div>
   </div>
   <div class="sel-bar" id="sel-bar">
     <div class="sel-info"><span id="sel-count">0</span> selezionati
@@ -343,6 +362,12 @@ function renderProspect(pb){
   if(S.settings['hunter_key'])loadHunterStats();
   $('f-stato').addEventListener('change',e=>{S.filtri.stato=e.target.value;renderProspect($('pb'));});
   $('f-sport').addEventListener('input',e=>{S.filtri.sport=e.target.value;renderProspect($('pb'));});
+  $('f-ordine').addEventListener('change',e=>{
+    const v=e.target.value;
+    const dir=v.endsWith('_desc')?'desc':'asc';
+    const campo=v.replace(/_asc$|_desc$/,'');
+    S.ordine={campo,dir};renderProspect($('pb'));
+  });
   $('btn-reset-filtri').addEventListener('click',()=>{S.filtri={stato:'',sport:'',search:''};renderProspect($('pb'));});
   document.querySelectorAll('.cb-p').forEach(cb=>cb.addEventListener('change',e=>{
     const id=e.target.dataset.id;

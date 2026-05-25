@@ -350,7 +350,7 @@ function renderProspect(pb){
         <td style="font-size:12px;">${p.km_sede?p.km_sede+'km':'\u2014'}</td>
         <td>${p.email?`<span style="font-size:12px;color:var(--navy);font-weight:600;">${esc(p.email)}</span>${p.email_verificata?' <span style="font-size:10px;color:var(--verde);">(H)</span>':''}` :'<span style="color:var(--g300);font-size:12px;">\u2014</span>'}</td>
         <td>${statoBadge(p.stato)}</td>
-        <td style="font-size:12px;color:var(--g500);">${fmt(p.updated_at)}</td>
+        <td style="font-size:12px;color:var(--g500);line-height:1.6;">${fmt(p.updated_at)}<br><span style="font-size:11px;color:var(--g300);">${p.updated_at?new Date(p.updated_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):''}</span></td>
         <td><div style="display:flex;gap:5px;">
           <button class="btn btn-secondary btn-sm btn-scheda" data-id="${p.id}">Scheda</button>
           ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}">Stato</button>`:''}

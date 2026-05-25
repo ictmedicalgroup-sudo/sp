@@ -352,9 +352,10 @@ function renderProspect(pb){
         <td>${p.email?`<span style="font-size:12px;color:var(--navy);font-weight:600;">${esc(p.email)}</span>${p.email_verificata?' <span style="font-size:10px;color:var(--verde);">(H)</span>':''}` :'<span style="color:var(--g300);font-size:12px;">\u2014</span>'}</td>
         <td>${statoBadge(p.stato)}</td>
         <td><div style="font-size:12px;color:var(--g500);">${fmt(p.updated_at)}</div>${p.updated_at?`<div style="font-size:11px;color:var(--g300);">${new Date(p.updated_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</div>`:''}</td>
-        <td><div style="display:flex;gap:5px;">
+        <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
           <button class="btn btn-secondary btn-sm btn-scheda" data-id="${p.id}">Scheda</button>
           ${S.ruolo==='admin'?`<button class="btn btn-secondary btn-sm btn-stato" data-id="${p.id}">Stato</button>`:''}
+          ${S.ruolo==='admin'&&!p.email?`<button class="btn btn-sm btn-hunter-row" data-id="${p.id}" style="background:#ff6b35;color:#fff;font-size:11px;">Hunter</button>`:''}
         </div></td>
       </tr>`).join('')}
     </tbody>
@@ -385,6 +386,7 @@ function renderProspect(pb){
   $('btn-desel')&&$('btn-desel').addEventListener('click',()=>{S.selezionati.clear();document.querySelectorAll('.cb-p').forEach(cb=>cb.checked=false);aggiornaSelBar();});
   $('btn-hunter-sel')&&$('btn-hunter-sel').addEventListener('click',lanciaHunter);
   document.querySelectorAll('.btn-scheda').forEach(b=>b.addEventListener('click',()=>openScheda(b.dataset.id)));
+  document.querySelectorAll('.btn-hunter-row').forEach(b=>b.addEventListener('click',()=>lanciaHunterSingolo(b.dataset.id)));
   document.querySelectorAll('.btn-stato').forEach(b=>b.addEventListener('click',()=>openCambiaStato(b.dataset.id)));
   if($('btn-cerca-maps'))$('btn-cerca-maps').addEventListener('click',openCercaMaps);
   if($('btn-add-manuale'))$('btn-add-manuale').addEventListener('click',openAddManuale);
@@ -452,7 +454,10 @@ function openScheda(id,editMode=false){
         <div class="setting-row"><div class="setting-label">Km sede</div><div>${p.km_sede?p.km_sede+' km':'—'}</div></div>
         <div class="setting-row"><div class="setting-label">Telefono</div><div>${esc(p.telefono||'—')}</div></div>
         <div class="setting-row"><div class="setting-label">Sito web</div><div>${p.sito_web?`<a href="${esc(p.sito_web)}" target="_blank" style="color:var(--verde);font-size:12px;">${esc(p.sito_web)}</a>`:'—'}</div></div>
-        <div class="setting-row"><div class="setting-label">Email</div><div>${p.email?esc(p.email)+' '+(p.email_verificata?'<span style="color:var(--verde);font-size:11px;">(Hunter)</span>':''):'<span style="color:var(--g300);">—</span>'}</div></div>
+        <div class="setting-row"><div class="setting-label">Email</div><div>
+          ${p.email?`<div style="font-size:13px;">${esc(p.email)} ${p.email_verificata?'<span style="color:var(--verde);font-size:11px;">(Hunter)</span>':''}</div>`:'<span style="color:var(--g300);">—</span>'}
+          ${(()=>{const ex=p.email_extra?JSON.parse(p.email_extra):[];return ex.map(e=>`<div style="font-size:12px;color:var(--g500);margin-top:2px;">${esc(e)} <span style="color:var(--g300);font-size:10px;">(Hunter)</span></div>`).join('');})()}
+        </div></div>
         <div class="setting-row"><div class="setting-label">Stato</div><div>${statoBadge(p.stato)}</div></div>
         <div class="setting-row"><div class="setting-label">Campagna</div><div style="font-size:12px;">${campagna?esc(campagna.nome):'—'}${sede?' - '+esc(sede.nome):''}</div></div>
       </div>
@@ -560,34 +565,102 @@ async function lanciaHunter(){
   $('hn-c').addEventListener('click',closeModal);
   $('hn-a').addEventListener('click',async()=>{
     $('hn-a').disabled=true;$('hn-a').textContent='Ricerca...';
-    let ok=0,skip=0;
+    $('hn-a').disabled=true;$('hn-a').textContent='Ricerca...';
+    // Raccoglie risultati per tutti i prospect, poi mostra popup selezione
+    const risultati=[];
     for(const p of list){
       if(!p.sito_web){
-        skip++;
-        await addLog('hunter',`Hunter: ${esc(p.nome)}`,`Saltato — nessun sito web`);
+        await addLog('hunter',`Hunter: ${p.nome}`,'Saltato — nessun sito web');
+        risultati.push({p,emails:[],domain:'',errore:'Nessun sito web'});
         continue;
       }
       const domain=p.sito_web.replace(/https?:\/\//,'').replace(/\/.*/,'');
       try{
         const res=await fetch(`https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${S.settings['hunter_key']}`);
         const data=await res.json();
-        if(data.data?.emails?.length>0){
-          const email=data.data.emails[0].value;
-          const conf=data.data.emails[0].confidence||'?';
-          await db('PATCH',T('prospect'),{flt:`id=eq.${p.id}`,body:{email,email_verificata:true,stato:'email_trovata',updated_at:new Date().toISOString()}});
-          await addLog('hunter',`Hunter: ${p.nome}`,`Trovata: ${email} (confidence ${conf}%) — dominio: ${domain}`);
-          ok++;
-        }else{
-          await addLog('hunter',`Hunter: ${p.nome}`,`Nessuna email — dominio: ${domain}`);
-          skip++;
-        }
+        const emails=(data.data?.emails||[]).map(e=>({email:e.value,confidence:e.confidence||0,tipo:e.type||'',nome:(e.first_name||'')+' '+(e.last_name||'')}));
+        risultati.push({p,emails,domain});
       }catch(e){
-        await addLog('hunter',`Hunter: ${p.nome}`,`Errore ricerca — ${e.message}`);
-        skip++;
+        risultati.push({p,emails:[],domain,errore:e.message});
       }
     }
-    await addLog('hunter','Riepilogo Hunter.io',`${ok} email trovate, ${skip} saltate su ${list.length} prospect`);
-    toast(`Hunter: ${ok} trovate, ${skip} saltate`);
+    $('hn-a').disabled=false;
+    closeModal();
+    openHunterRisultati(risultati);
+  });
+  openModal();
+}
+
+async function lanciaHunterSingolo(prospectId){
+  const p=S.prospect.find(x=>x.id===prospectId);if(!p)return;
+  if(!S.settings['hunter_key']){toast('Configura Hunter.io API Key nelle Impostazioni','warn');return;}
+  if(!p.sito_web){toast('Prospect senza sito web — impossibile cercare','warn');return;}
+  toast('Ricerca in corso...','ok');
+  const domain=p.sito_web.replace(/https?:\/\//,'').replace(/\/.*/,'');
+  try{
+    const res=await fetch(`https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${S.settings['hunter_key']}`);
+    const data=await res.json();
+    const emails=(data.data?.emails||[]).map(e=>({email:e.value,confidence:e.confidence||0,tipo:e.type||'',nome:(e.first_name||'')+' '+(e.last_name||'')}));
+    openHunterRisultati([{p,emails,domain}]);
+  }catch(e){toast('Errore Hunter: '+e.message,'err');}
+}
+
+function openHunterRisultati(risultati){
+  // risultati: [{p, emails:[{email,confidence,tipo,nome}], domain, errore?}]
+  const conEmail=risultati.filter(r=>r.emails.length>0);
+  const senzaEmail=risultati.filter(r=>r.emails.length===0);
+  $('modal-title').textContent='Risultati Hunter.io';$('modal-box').className='modal modal-lg';
+  $('modal-body').innerHTML=`
+    ${conEmail.length===0?'<div class="empty"><div class="ei">&#127919;</div><p>Nessuna email trovata</p></div>':''}
+    ${conEmail.map(r=>`
+      <div style="border:1px solid var(--g200);border-radius:var(--r);padding:14px;margin-bottom:12px;background:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--navy);">${esc(r.p.nome)}</div>
+            <div style="font-size:11px;color:var(--g500);">${esc(r.domain)}</div>
+          </div>
+          <div style="font-size:11px;color:var(--verde);font-weight:600;">${r.emails.length} email trovate</div>
+        </div>
+        ${r.emails.map((e,i)=>`
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:${i===0?'var(--blue-xlight)':'var(--g50)'};border:1px solid ${i===0?'var(--blue-light)':'var(--g200)'};border-radius:var(--rsm);margin-bottom:6px;cursor:pointer;">
+            <input type="checkbox" class="hunter-email-cb" data-pid="${r.p.id}" data-email="${esc(e.email)}" ${i===0?'checked':''} style="width:16px;height:16px;accent-color:var(--verde);flex-shrink:0;"/>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--navy);">${esc(e.email)}</div>
+              <div style="font-size:11px;color:var(--g500);">${e.nome.trim()?esc(e.nome)+' · ':''}${e.tipo?esc(e.tipo)+' · ':''}confidence: ${e.confidence}%</div>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:${e.confidence>=70?'var(--verde)':e.confidence>=40?'var(--orange)':'var(--red)'};">${e.confidence}%</div>
+          </label>`).join('')}
+      </div>`).join('')}
+    ${senzaEmail.length>0?`<div style="margin-top:8px;padding:12px;background:var(--g50);border-radius:var(--r);font-size:12px;color:var(--g500);">
+      <strong>Nessuna email trovata per:</strong> ${senzaEmail.map(r=>esc(r.p.nome)+(r.errore?' ('+r.errore+')':'')).join(', ')}
+    </div>`:''}`;
+  $('modal-foot').innerHTML=`<button class="btn btn-secondary" id="hr-c">Annulla</button><button class="btn btn-primary" id="hr-s">Salva selezionate</button>`;
+  $('hr-c').addEventListener('click',closeModal);
+  $('hr-s').addEventListener('click',async()=>{
+    $('hr-s').disabled=true;$('hr-s').textContent='Salvataggio...';
+    // Raccoglie email selezionate per prospect
+    const byProspect={};
+    document.querySelectorAll('.hunter-email-cb:checked').forEach(cb=>{
+      const pid=cb.dataset.pid;
+      if(!byProspect[pid])byProspect[pid]=[];
+      byProspect[pid].push(cb.dataset.email);
+    });
+    let saved=0;
+    for(const [pid,emails] of Object.entries(byProspect)){
+      const primary=emails[0];
+      const extra=emails.slice(1);
+      // Salva email primaria + extra come JSON
+      await db('PATCH',T('prospect'),{flt:`id=eq.${pid}`,body:{
+        email:primary,email_verificata:true,stato:'email_trovata',
+        email_extra:extra.length?JSON.stringify(extra):null,
+        updated_at:new Date().toISOString()
+      }});
+      await addLog('hunter',`Hunter: ${S.prospect.find(x=>x.id===pid)?.nome||pid}`,
+        `Salvate: ${emails.join(', ')}`);
+      saved++;
+    }
+    await addLog('hunter','Riepilogo Hunter.io',`${saved} prospect aggiornati`);
+    toast(`Salvate email per ${saved} prospect`);
     S.selezionati.clear();await loadAll();closeModal();goPage('prospect');updateBadges();
   });
   openModal();
@@ -788,7 +861,15 @@ function mostraEmailGenerata(p,testo,tipo){
     corpo=lines.slice(1).join('\n').trim();
   }
   $('ge-output').innerHTML=`
-    <div class="email-meta"><strong>A:</strong> ${esc(p.email)}</div>
+    <div class="email-meta">
+      <strong>A:</strong>
+      ${(()=>{
+        const extras=p.email_extra?JSON.parse(p.email_extra):[];
+        const all=[p.email,...extras].filter(Boolean);
+        if(all.length<=1)return`<span>${esc(p.email)}</span>`;
+        return`<select id="ge-dest" style="border:none;background:transparent;font-family:'Raleway',sans-serif;font-size:13px;color:var(--navy);font-weight:600;cursor:pointer;outline:none;">${all.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('')}</select>`;
+      })()}
+    </div>
     <div class="fgroup" style="margin-bottom:10px;"><label>Oggetto</label><input type="text" id="ge-ogg" value="${esc(oggetto)}" style="width:100%;"/></div>
     <div class="fgroup"><label>Testo (modifica se necessario)</label><textarea id="ge-testo" style="min-height:200px;font-size:13px;line-height:1.7;width:100%;">${esc(corpo)}</textarea></div>`;
   const ib=$('ge-i');ib.style.display='inline-flex';
@@ -807,7 +888,8 @@ async function inviaEmail(prospectId,oggetto,testo,tipo){
       headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
       body:(()=>{
         const htmlSafe=testo.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        const payload={to:p.email,subject:oggetto,
+        const destEmail=$('ge-dest')?$('ge-dest').value:p.email;
+        const payload={to:destEmail,subject:oggetto,
           htmlContent:'<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;">'+htmlSafe+'</pre>',
           senderName:'Medi Group',senderEmail:S.settings['brevo_sender']||'info@medicalgroup.it'};
         return JSON.stringify(payload);

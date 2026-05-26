@@ -363,7 +363,6 @@ function renderProspect(pb){
   document.querySelectorAll('.btn-stato').forEach(b=>b.addEventListener('click',()=>openCambiaStato(b.dataset.id)));
   if($('btn-cerca-maps'))$('btn-cerca-maps').addEventListener('click',openCercaMaps);
   if($('btn-add-manuale'))$('btn-add-manuale').addEventListener('click',openAddManuale);
-  aggiornaSelBar();
 }
 
 function openScheda(id,editMode=false){
@@ -778,7 +777,7 @@ async function callAI(prompt,forceProvider=null){
   }else if(provider==='gemini'){
     const key=(S.settings['gemini_key']||'').trim();
     if(!key)throw new Error('Chiave Gemini non configurata nelle Impostazioni');
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${key}`,{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:2048,temperature:0.7}})});
     if(!res.ok){const t=await res.text();throw new Error(`Gemini ${res.status}: ${t.slice(0,200)}`);}
@@ -1145,7 +1144,7 @@ function renderSettings(pb){
       ${renderKey('hunter_key','Hunter.io API Key','Ricerca email. Piano free: 25/mese.','hunter_...')}
       ${renderKey('claude_key','Anthropic Claude API Key','claude-sonnet-4. Richiede credito.','sk-ant-...')}
       ${renderKey('groq_key','Groq API Key','llama-3.1-8b-instant. Piano free disponibile.','gsk_...')}
-      ${renderKey('gemini_key','Google Gemini API Key','gemini-2.5-flash. Piano free disponibile.','AIza...')}
+      ${renderKey('gemini_key','Google Gemini API Key','gemini-2.0-flash. Piano free disponibile.','AIza...')}
       ${renderKeyText('brevo_sender','Email mittente','Es: commerciale@medicalgroup.it','info@medicalgroup.it')}
     </div></div>
     <div>

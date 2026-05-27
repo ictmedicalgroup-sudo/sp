@@ -14,14 +14,16 @@
 body{background:var(--g50);color:var(--g900);font-family:'Raleway',sans-serif;font-size:14px;}
 #toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--r);font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;max-width:380px;}
 #toast.show{opacity:1;transform:translateY(0);}#toast.tok{background:var(--g900);color:#fff;}#toast.terr{background:var(--red);color:#fff;}#toast.twarn{background:var(--orange);color:#fff;}
-#lp{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--g50);}
-.lcard{background:#fff;border-radius:var(--rlg);padding:40px 38px;width:100%;max-width:420px;box-shadow:var(--sh-lg);border:1px solid var(--g200);}
-.lcard h2{font-size:22px;font-weight:700;color:var(--navy);margin:20px 0 6px;}.lcard p{font-size:13px;color:var(--g500);margin-bottom:24px;}
-.lfield{margin-bottom:16px;}.lfield label{display:block;font-size:12px;font-weight:600;color:var(--g700);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
-.lfield input{width:100%;padding:11px 14px;border:1px solid var(--g200);border-radius:var(--rsm);background:#EEF5E3;font-family:'Raleway',sans-serif;font-size:14px;color:var(--g900);outline:none;transition:border-color .2s;}
-.lfield input:focus{border-color:var(--verde);}
-.lbtn{width:100%;padding:12px;background:var(--verde);color:#fff;border:none;border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;}
-.lbtn:hover{opacity:.88;}.lerr{background:var(--red-light);color:var(--red);border-radius:var(--rsm);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;}
+/* ── Login ── */
+#lp{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--g50)}
+.lcard{background:#fff;border-radius:var(--rlg);padding:40px 38px;width:100%;max-width:420px;box-shadow:var(--sh-lg);border:1px solid var(--g200)}
+.lfield{margin-bottom:16px}
+.lfield label{display:block;font-size:12px;font-weight:600;color:var(--g700);letter-spacing:.5px;margin-bottom:6px}
+.lfield input{width:100%;padding:11px 14px;border:1px solid var(--g200);border-radius:var(--rsm);background:#EEF5E3;font-family:'Raleway',sans-serif;font-size:14px;color:var(--g900);outline:none;transition:border-color .2s}
+.lfield input:focus{border-color:var(--verde)}
+.lbtn{width:100%;padding:12px;background:var(--verde);color:#fff;border:none;border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.lbtn:hover{opacity:.88}
+.lerr{background:var(--red-light);color:var(--red);border-radius:var(--rsm);padding:10px 14px;font-size:13px;margin-top:14px;display:none}
 #app{display:flex;flex-direction:column;min-height:100vh;display:none;}
 #topbar{background:#fff;border-bottom:1px solid var(--g200);padding:0 28px;position:sticky;top:0;z-index:100;box-shadow:var(--sh-sm);}
 #tb-top{height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g100);}
@@ -139,6 +141,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:poi
       <button class="tnb" data-page="campagne">Campagne</button>
       <button class="tnb" data-page="log">Log</button>
       <button class="tnb" data-page="settings">Impostazioni</button>
+      <button class="tnb" data-page="utenti" id="tnb-utenti" style="display:none">Utenti</button>
     </nav>
   </div>
   <div id="campagna-bar"><label>Campagna:</label><select id="campagna-sel"></select><span id="campagna-badge"></span></div>
@@ -155,7 +158,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--verde);cursor:poi
 const CFG={URL:'https://iczsdqcnvauopwkuspti.supabase.co',KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljenNkcWNudmF1b3B3a3VzcHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTQ0MjMsImV4cCI6MjA5MjQzMDQyM30.SmcRHPLM2PEq4Hn-5CQhMyQKoz0PN_0lbN_X3l9MNUE',FN:'https://iczsdqcnvauopwkuspti.supabase.co/functions/v1'};
 const T=n=>`sp_${n}`;
 const BUILD_STR='';
-const S={user:null,token:null,ruolo:null,page:'prospect',prospect:[],email:[],log:[],template:[],sedi:[],campagne:[],filtri:{stato:'',sport:'',search:''},ordine:{campo:'nome',dir:'asc'},selezionati:new Set(),settings:{},campagnaAttiva:null};
+const S={user:null,token:null,ruolo:null,page:'prospect',profili:[],prospect:[],email:[],log:[],template:[],sedi:[],campagne:[],filtri:{stato:'',sport:'',search:''},ordine:{campo:'nome',dir:'asc'},selezionati:new Set(),settings:{},campagnaAttiva:null};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function fmt(d){if(!d)return'\u2014';const dt=typeof d==='string'?new Date(d.length===10?d+'T00:00:00':d):d;return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}
@@ -199,6 +202,7 @@ async function initApp(){
   $('tb-user').textContent=`${S.user.nome||''} ${S.user.cognome||''}`.trim()||S.user.email;
   $('tb-role').textContent=S.ruolo||'viewer';
   document.querySelectorAll('.tnb').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
+  if(S.ruolo==='admin'){const tu=$('tnb-utenti');if(tu)tu.style.display='';}
   $('lout').addEventListener('click',doLogout);
   await loadAll();buildCampagnaBar();goPage('prospect');updateBadges();
 }
@@ -213,6 +217,7 @@ async function loadAll(){
       db('GET',T('campagne'),{ord:'created_at.desc'}).catch(()=>[]),
     ]);
     try{const sv=await db('GET',T('settings'),{});S.settings={};(sv||[]).forEach(r=>{S.settings[r.chiave]=r.valore;});}catch(e){}
+    try{S.profili=await db('GET',T('profili'),{ord:'cognome.asc'})||[];}catch(e){S.profili=[];}
   }catch(e){toast('Errore caricamento dati','err');}
 }
 function buildCampagnaBar(){
@@ -274,6 +279,7 @@ function goPage(pg){
   else if(pg==='campagne')renderCampagne(pb);
   else if(pg==='log')renderLog(pb);
   else if(pg==='settings')renderSettings(pb);
+  else if(pg==='utenti')renderUtenti(pb);
 }
 function statoBadge(stato){const L={nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',gia_cliente:'Già cliente',no:'Non interessato'};return`<span class="badge-stato s-${stato}"><span class="dot dot-${stato}"></span>${L[stato]||stato}</span>`;}
 function renderProspect(pb){
@@ -379,7 +385,7 @@ function openScheda(id,editMode=false){
         <div class="frow"><div class="fgroup"><label>Citta</label><input type="text" id="sc-citta" value="${esc(p.citta||'')}"/></div><div class="fgroup"><label>Km sede</label><input type="number" id="sc-km" value="${p.km_sede||''}" step="0.1"/></div></div>
         <div class="frow full"><div class="fgroup"><label>Indirizzo</label><input type="text" id="sc-ind" value="${esc(p.indirizzo||'')}"/></div></div>
         <div class="frow"><div class="fgroup"><label>Telefono</label><input type="text" id="sc-tel" value="${esc(p.telefono||'')}"/></div><div class="fgroup"><label>Sito web</label><input type="text" id="sc-sito" value="${esc(p.sito_web||'')}"/></div></div>
-        <div class="frow"><div class="fgroup"><label>Email</label><input type="email" id="sc-email" value="${esc(p.email||'')}"/></div><div class="fgroup"><label>Campagna</label><select id="sc-campagna"><option value="">Nessuna</option>${campagneOpts}</select></div></div>
+        <div class="frow"><div class="fgroup"><label>E-Mail</label><input type="email" id="sc-email" value="${esc(p.email||'')}"/></div><div class="fgroup"><label>Campagna</label><select id="sc-campagna"><option value="">Nessuna</option>${campagneOpts}</select></div></div>
         <div class="frow full"><div class="fgroup"><label>Stato</label>
           <select id="sc-stato">${['nuovo','email_trovata','contattato','risposto','call','cliente','gia_cliente','no'].map(s=>`<option value="${s}" ${p.stato===s?'selected':''}>${{nuovo:'Nuovo',email_trovata:'Email trovata',contattato:'Contattato',risposto:'Risposto',call:'Call schedulata',cliente:'Cliente',gia_cliente:'Già cliente',no:'Non interessato'}[s]}</option>`).join('')}</select>
         </div></div>
@@ -1303,19 +1309,164 @@ async function addLog(tipo,azione,dettaglio=''){
 }
 function openModal(){$('modal-overlay').classList.add('open');}
 function closeModal(){$('modal-overlay').classList.remove('open');}
+
+/* ── Check email live + avviso password cross-tool ── */
+async function checkEmailLive(inputEl,infoEl,pwdWrap,fnName){
+  const email=inputEl.value.trim();
+  infoEl.style.display='none'; infoEl.dataset.exists='';
+  if(!email||!email.includes('@')) return;
+  try{
+    const res=await fetch(`${CFG.FN}/${fnName}`,{method:'POST',
+      headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({action:'check_email',email})});
+    const data=await res.json();
+    if(!data.ok) return;
+    infoEl.dataset.exists=data.exists?'true':'false';
+    if(data.exists){
+      infoEl.style.cssText='display:block;margin-top:6px;padding:8px 12px;border-radius:var(--rsm);background:#EEF5E3;border:1px solid var(--blue-light);font-size:12px;color:#2e6e1a;font-weight:600';
+      infoEl.textContent='\u2713 Utente gi\u00e0 presente \u2014 la password rimane la stessa impostata per gli altri tool';
+      if(pwdWrap) pwdWrap.style.display='none';
+    }else{
+      infoEl.style.cssText='display:block;margin-top:6px;padding:8px 12px;border-radius:var(--rsm);background:var(--g50);border:1px solid var(--g200);font-size:12px;color:var(--g500)';
+      infoEl.textContent='Nuovo utente \u2014 inserisci una password per creare l\'account';
+      if(pwdWrap) pwdWrap.style.display='';
+    }
+  }catch(e){}
+}
+const PWD_WARN_HTML='<div style="margin-top:6px;padding:8px 12px;border-radius:var(--rsm);background:#FEF0E3;border:1px solid #f5c28a;font-size:12px;color:#7a3800;font-weight:600">\u26a0 Attenzione: questa password sar\u00e0 valida per tutti i tool che usano lo stesso account.</div>';
+function renderUtentiTable(list,pb){
+  const el=document.getElementById('u-table-wrap');if(!el)return;
+  if(!list.length){el.innerHTML='<div class="empty"><div class="ei">👥</div><p>Nessun utente trovato</p></div>';return;}
+  el.innerHTML=`<table><thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>
+  ${list.map(u=>`<tr>
+    <td><div style="font-weight:600">${esc(u.cognome+' '+u.nome)}</div><div style="font-size:12px;color:var(--g500)">${esc(u.email||'')}</div></td>
+    <td><span class="${u.ruolo==='admin'?'badge':'badge badge-sx'}">${u.ruolo==='admin'?'Admin':'Viewer'}</span></td>
+    <td><span class="badge ${u.attivo?'badge-dx':''}" style="${u.attivo?'':'background:var(--g100);color:var(--g500)'}">${u.attivo?'✓ Attivo':'✗ Inattivo'}</span></td>
+    <td><div style="display:flex;gap:6px">
+      <button class="btn btn-secondary btn-sm" data-ue="${u.id}">✏ Modifica</button>
+      ${u.id!==S.user?.id?`<button class="btn btn-danger btn-sm" data-ud="${u.id}">🗑 Rimuovi</button>`:''}
+    </div></td>
+  </tr>`).join('')}
+  </tbody></table>`;
+  el.querySelectorAll('[data-ue]').forEach(b=>b.addEventListener('click',()=>openUtenteModal(S.profili.find(x=>x.id===b.dataset.ue))));
+  el.querySelectorAll('[data-ud]').forEach(b=>b.addEventListener('click',()=>{
+    const u=S.profili.find(x=>x.id===b.dataset.ud);
+    if(!confirm(`Rimuovere il profilo di "${u?.nome} ${u?.cognome}"?\n\nL'account di accesso rimane attivo sugli altri tool.`))return;
+    fetch(`${CFG.FN}/sp-manage-user`,{method:'POST',headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({action:'delete_profile',user_id:b.dataset.ud})})
+    .then(r=>r.json()).then(data=>{
+      if(!data.ok){toast('Errore: '+data.error,'err');return;}
+      S.profili=S.profili.filter(x=>x.id!==b.dataset.ud);
+      goPage('utenti');toast('Profilo rimosso');
+    }).catch(e=>toast(e.message,'err'));
+  }));
+}
+
+function renderUtenti(pb){
+  if(S.ruolo!=='admin'){goPage('prospect');return;}
+  pb.innerHTML=`<div class="page-wrap"><div class="page-header"><div>
+    <div class="page-title">Gestione Utenti</div>
+    <div class="page-subtitle">Profili con accesso a Prospect Sport</div>
+  </div><div style="display:flex;gap:8px;align-items:center">
+    <input type="text" id="u-search" placeholder="🔍 Cerca…" style="width:200px"/>
+    <button class="btn btn-primary" id="u-add">+ Nuovo utente</button>
+  </div></div>
+  <div class="card"><div id="u-table-wrap"></div></div></div>`;
+  const render=q=>{
+    const fl=(S.profili||[]).filter(u=>`${u.cognome} ${u.nome} ${u.email}`.toLowerCase().includes((q||'').toLowerCase()));
+    renderUtentiTable(fl,pb);
+  };
+  render('');
+  document.getElementById('u-search').addEventListener('input',e=>render(e.target.value));
+  document.getElementById('u-add').addEventListener('click',()=>openUtenteModal(null));
+}
+
+function openUtenteModal(u){
+  const isNew=!u;
+  $('modal-title').textContent=isNew?'+ Nuovo utente':'✏ Modifica utente';
+  $('modal-box').className='modal';
+  $('modal-body').innerHTML=`
+    <div class="frow"><div class="fgroup"><label>Nome *</label><input type="text" id="um-nome" value="${esc(u?.nome||'')}"/></div>
+    <div class="fgroup"><label>Cognome *</label><input type="text" id="um-cog" value="${esc(u?.cognome||'')}"/></div></div>
+    <div class="fgroup"><label>E-Mail *</label>
+      <input type="email" id="um-email" value="${esc(u?.email||'')}"
+        ${isNew?'placeholder="nome@medicalgroup.it"':'readonly style="background:var(--g50);color:var(--g500);cursor:not-allowed"'}/>
+      ${isNew?'<div id="um-email-info" style="display:none"></div>':''}
+    </div>
+    ${isNew?`<div id="um-pwd-wrap"><div class="fgroup"><label>Password *</label>
+      <input type="password" id="um-pwd" placeholder="Minimo 6 caratteri"/>
+    </div></div>`:''}
+    <div class="fgroup"><label>Ruolo</label><select id="um-ruolo">
+      <option value="admin"${u?.ruolo==='admin'?' selected':''}>Admin</option>
+      <option value="viewer"${u?.ruolo!=='admin'?' selected':''}>Viewer (sola lettura)</option>
+    </select></div>
+    <div class="fgroup"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-weight:600">
+      <input type="checkbox" id="um-attivo" ${u?.attivo!==false?'checked':''}> Utente attivo
+    </label></div>
+    ${!isNew?`<div class="fgroup"><label>Nuova password <span style="font-weight:400;font-size:11px;color:var(--g500)">(lascia vuoto per non modificare)</span></label>
+      <input type="password" id="um-newpwd" placeholder="Minimo 6 caratteri"/>
+      <div id="um-pwd-warn" style="display:none">${PWD_WARN_HTML}</div>
+    </div>`:''}`;
+  $('modal-foot').innerHTML='<button class="btn btn-secondary" id="um-cancel">Annulla</button><button class="btn btn-primary" id="um-save">Salva</button>';
+  $('um-cancel').addEventListener('click',closeModal);
+  $('um-save').addEventListener('click',async()=>{
+    const nome=document.getElementById('um-nome').value.trim();
+    const cog=document.getElementById('um-cog').value.trim();
+    const email=document.getElementById('um-email').value.trim();
+    const ruolo=document.getElementById('um-ruolo').value;
+    const attivo=document.getElementById('um-attivo').checked;
+    if(!nome||!cog||!email){toast('Compila tutti i campi obbligatori','err');return;}
+    try{
+      if(isNew){
+        const emailInfo=document.getElementById('um-email-info');
+        const exists=emailInfo?.dataset.exists==='true';
+        const pwd=document.getElementById('um-pwd')?.value||'';
+        if(!exists&&pwd.length<6){toast('Password minimo 6 caratteri','err');return;}
+        const payload={action:'create',email,nome,cognome:cog,ruolo};
+        if(!exists) payload.password=pwd;
+        const res=await fetch(`${CFG.FN}/sp-manage-user`,{method:'POST',
+          headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
+          body:JSON.stringify(payload)});
+        const data=await res.json();
+        if(!data.ok) throw new Error(data.error||'Errore creazione');
+        S.profili.push({id:data.user_id,nome,cognome:cog,email,ruolo,attivo:true});
+        closeModal();toast(data.auth_created?'Utente creato ✅':'Profilo collegato ✅');
+      }else{
+        const pwd=document.getElementById('um-newpwd')?.value||'';
+        if(pwd&&pwd.length<6){toast('Password minimo 6 caratteri','err');return;}
+        const payload={action:'update',user_id:u.id,nome,cognome:cog,ruolo,attivo};
+        if(pwd) payload.password=pwd;
+        const res=await fetch(`${CFG.FN}/sp-manage-user`,{method:'POST',
+          headers:{'Authorization':`Bearer ${S.token}`,'Content-Type':'application/json'},
+          body:JSON.stringify(payload)});
+        const data=await res.json();
+        if(!data.ok) throw new Error(data.error||'Errore aggiornamento');
+        S.profili=S.profili.map(x=>x.id===u.id?{...x,nome,cognome:cog,ruolo,attivo}:x);
+        closeModal();toast('Utente aggiornato ✅');
+      }
+      goPage('utenti');
+    }catch(e){toast(e.message,'err');}
+  });
+  if(isNew){
+    const emailEl=document.getElementById('um-email');
+    const infoEl=document.getElementById('um-email-info');
+    const pwdWrap=document.getElementById('um-pwd-wrap');
+    emailEl.addEventListener('blur',()=>checkEmailLive(emailEl,infoEl,pwdWrap,'sp-manage-user'));
+  }
+  if(!isNew){
+    const pwdEl=document.getElementById('um-newpwd');
+    const warnEl=document.getElementById('um-pwd-warn');
+    if(pwdEl&&warnEl) pwdEl.addEventListener('input',()=>{warnEl.style.display=pwdEl.value.length>0?'':'none';});
+  }
+  openModal();
+}
 document.addEventListener('DOMContentLoaded',async()=>{
   const tl=$('tb-logo');if(tl)tl.innerHTML=logoHTML(true);
   const ll=$('login-logo');if(ll)ll.innerHTML=logoHTML(false);
   const lv=$('login-ver');const tv=$('tb-ver');
   try{
-    const repo='ictmedicalgroup-sudo/sp';
-    const res=await fetch(`https://api.github.com/repos/${repo}/commits?per_page=1`);
-    if(res.ok){
-      const [commit]=await res.json();
-      const d=new Date(commit.commit.committer.date);
-      const buildStr='build '+d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-      if(lv)lv.textContent=buildStr;if(tv)tv.textContent=buildStr;
-    }else{if(lv)lv.textContent='';if(tv)tv.textContent='';}
+    const res=await fetch(`https://api.github.com/repos/ictmedicalgroup-sudo/sp/commits?per_page=1`);
+    if(res.ok){const [c]=await res.json();const d=new Date(c.commit.committer.date);const bStr='build '+d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});if(lv)lv.textContent=bStr;if(tv)tv.textContent=bStr;}else{if(lv)lv.textContent='';if(tv)tv.textContent='';}
   }catch(e){if(lv)lv.textContent='';if(tv)tv.textContent='';}
   $('lbtn-login').addEventListener('click',doLogin);
   $('lemail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});

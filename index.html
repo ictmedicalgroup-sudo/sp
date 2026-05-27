@@ -24,6 +24,13 @@ body{background:var(--g50);color:var(--g900);font-family:'Raleway',sans-serif;fo
 .lbtn{width:100%;padding:12px;background:var(--verde);color:#fff;border:none;border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
 .lbtn:hover{opacity:.88}
 .lerr{background:var(--red-light);color:var(--red);border-radius:var(--rsm);padding:10px 14px;font-size:13px;margin-top:14px;display:none}
+/* ── Form modal utenti ── */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.fgroup-u{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fgroup-u label{font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.5px}
+.fgroup-u input,.fgroup-u select{padding:8px 11px;border:1.5px solid var(--g200);border-radius:var(--rsm);font-family:'Raleway',sans-serif;font-size:13px;color:var(--g900);background:var(--g50);outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+.fgroup-u input:focus,.fgroup-u select:focus{border-color:var(--verde);box-shadow:0 0 0 3px rgba(157,191,96,.15);background:#fff}
+.fgroup-u input[readonly]{background:var(--g100);color:var(--g500);cursor:not-allowed}
 /* ── Form fields (uniforme con sedi) ── */
 .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
 .fl{font-size:11.5px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.4px}
@@ -1398,53 +1405,37 @@ function renderUtenti(pb){
 function openUtenteModal(u){
   const isNew=!u;
   $('modal-title').textContent=isNew?'+ Nuovo utente':'\u270f Modifica utente';
-  $('modal-box').className='modal';
   $('modal-body').innerHTML=`
     <div class="frow">
-      <div class="fgroup"><label>Nome</label><input type="text" id="um-nome" value="${esc(u?.nome||'')}"/></div>
-      <div class="fgroup"><label>Cognome</label><input type="text" id="um-cog" value="${esc(u?.cognome||'')}"/></div>
+      <div class="fgroup-u"><label>Nome</label><input type="text" id="um-nome" value="${esc(u?.nome||'')}"/></div>
+      <div class="fgroup-u"><label>Cognome</label><input type="text" id="um-cog" value="${esc(u?.cognome||'')}"/></div>
     </div>
-    <div class="fgroup"><label>E-Mail *</label>
+    <div class="fgroup-u"><label>E-Mail *</label>
       <input type="email" id="um-email" value="${esc(u?.email||'')}"
-        ${isNew?'placeholder="nome@medicalgroup.it"':'readonly style="background:var(--g50);color:var(--g500);cursor:not-allowed"'}/>
+        ${isNew?'placeholder="nome@medicalgroup.it"':'readonly'}/>
       ${isNew?'<div id="um-email-info" style="display:none;margin-top:4px"></div>':''}
     </div>
-    ${isNew?`<div id="um-pwd-wrap"><div class="fgroup"><label>Password *</label>
+    ${isNew?`<div class="fgroup-u" id="um-pwd-wrap"><label>Password *</label>
       <input type="password" id="um-pwd" placeholder="Minimo 6 caratteri"/>
-    </div></div>`:''}
-    <div class="fgroup"><label>Ruolo</label>
-      <select id="um-ruolo">
-        <option value="admin"${u?.ruolo==='admin'?' selected':''}>Admin</option>
-        <option value="viewer"${u?.ruolo!=='admin'?' selected':''}>Viewer (sola lettura)</option>
-      </select>
+      <div style="font-size:11px;color:var(--g500);margin-top:3px">Se l&rsquo;utente esiste gi&agrave; in un altro tool, la password non serve.</div>
+    </div>`:''}
+    <div class="frow">
+      <div class="fgroup-u"><label>Ruolo</label>
+        <select id="um-ruolo">
+          <option value="admin"${u?.ruolo==='admin'?' selected':''}>Admin</option>
+          <option value="viewer"${u?.ruolo!=='admin'?' selected':''}>Viewer (sola lettura)</option>
+        </select>
+      </div>
+      <div class="fgroup-u"><label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer">
+        <input type="checkbox" id="um-attivo" ${u?.attivo!==false?'checked':''} style="width:16px;height:16px;accent-color:var(--verde)"/>
+        Utente attivo
+      </label></div>
     </div>
-    <div class="fgroup" style="flex-direction:row;align-items:center;gap:10px;margin-top:4px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0">
-        <span style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
-          <input type="checkbox" id="um-attivo" ${u?.attivo!==false?'checked':''}
-            style="opacity:0;width:0;height:0;position:absolute"/>
-          <span id="um-attivo-track" style="display:block;width:36px;height:20px;border-radius:10px;background:${u?.attivo!==false?'var(--verde)':'var(--g300)'};transition:background .2s;cursor:pointer;position:relative">
-            <span id="um-attivo-knob" style="position:absolute;top:2px;left:${u?.attivo!==false?'18':'2'}px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s,transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
-          </span>
-        </span>
-        <span>Utente attivo</span>
-      </label>
-    </div>
-    ${!isNew?`<div class="fgroup" style="margin-top:8px"><label>Nuova password <span style="font-weight:400;font-size:11px;color:var(--g500)">(lascia vuoto per non modificare)</span></label>
+    ${!isNew?`<div class="fgroup-u"><label>Nuova password <span style="font-weight:400;font-size:11px;color:var(--g500)">(lascia vuoto per non modificare)</span></label>
       <input type="password" id="um-newpwd" placeholder="Minimo 6 caratteri"/>
       <div id="um-pwd-warn" style="display:none">${PWD_WARN_HTML}</div>
     </div>`:''}`;
   $('modal-foot').innerHTML='<button class="btn btn-secondary" id="um-cancel">Annulla</button><button class="btn btn-primary" id="um-save">Salva</button>';
-  // toggle visivo per il checkbox attivo
-  const cbAttivo=document.getElementById('um-attivo');
-  const trAttivo=document.getElementById('um-attivo-track');
-  const knAttivo=document.getElementById('um-attivo-knob');
-  if(cbAttivo&&trAttivo&&knAttivo){
-    cbAttivo.addEventListener('change',()=>{
-      trAttivo.style.background=cbAttivo.checked?'var(--verde)':'var(--g300)';
-      knAttivo.style.left=cbAttivo.checked?'18px':'2px';
-    });
-  }
   $('um-cancel').addEventListener('click',closeModal);
   $('um-save').addEventListener('click',async()=>{
     const nome=document.getElementById('um-nome').value.trim();
@@ -1453,12 +1444,14 @@ function openUtenteModal(u){
     const ruolo=document.getElementById('um-ruolo').value;
     const attivo=document.getElementById('um-attivo').checked;
     if(!email){toast('Email obbligatoria','err');return;}
+    const btn=document.getElementById('um-save');
+    btn.disabled=true; btn.textContent='Salvataggio\u2026';
     try{
       if(isNew){
         const emailInfo=document.getElementById('um-email-info');
         const exists=emailInfo?.dataset.exists==='true';
         const pwd=document.getElementById('um-pwd')?.value||'';
-        if(!exists&&pwd.length<6){toast('Password minimo 6 caratteri','err');return;}
+        if(!exists&&pwd.length<6){toast('Password minimo 6 caratteri','err');btn.disabled=false;btn.textContent='Salva';return;}
         const payload={action:'create',email,nome,cognome:cog,ruolo};
         if(!exists) payload.password=pwd;
         const res=await fetch(`${CFG.FN}/sp-manage-user`,{method:'POST',
@@ -1467,10 +1460,10 @@ function openUtenteModal(u){
         const data=await res.json();
         if(!data.ok) throw new Error(data.error||'Errore creazione');
         S.profili.push({id:data.user_id,nome,cognome:cog,email,ruolo,attivo:true});
-        closeModal();toast(data.auth_created?'Utente creato \u2705':'Profilo collegato \u2705');
+        closeModal(); toast(data.auth_created?'Utente creato \u2705':'Profilo collegato \u2705');
       }else{
         const pwd=document.getElementById('um-newpwd')?.value||'';
-        if(pwd&&pwd.length<6){toast('Password minimo 6 caratteri','err');return;}
+        if(pwd&&pwd.length<6){toast('Password minimo 6 caratteri','err');btn.disabled=false;btn.textContent='Salva';return;}
         const payload={action:'update',user_id:u.id,nome,cognome:cog,ruolo,attivo};
         if(pwd) payload.password=pwd;
         const res=await fetch(`${CFG.FN}/sp-manage-user`,{method:'POST',
@@ -1479,10 +1472,10 @@ function openUtenteModal(u){
         const data=await res.json();
         if(!data.ok) throw new Error(data.error||'Errore aggiornamento');
         S.profili=S.profili.map(x=>x.id===u.id?{...x,nome,cognome:cog,ruolo,attivo}:x);
-        closeModal();toast('Utente aggiornato \u2705');
+        closeModal(); toast('Utente aggiornato \u2705');
       }
       goPage('utenti');
-    }catch(e){toast(e.message,'err');}
+    }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='Salva';}
   });
   if(isNew){
     const emailEl=document.getElementById('um-email');
